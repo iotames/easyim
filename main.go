@@ -6,6 +6,7 @@ import (
 
 	"github.com/iotames/easyim/config"
 	"github.com/iotames/easyim/database"
+	"github.com/iotames/easyim/server"
 )
 
 var (
@@ -20,7 +21,7 @@ func main() {
 		database.SyncTables()
 	}
 	listenIP := "0.0.0.0"
-	server := NewServer(listenIP, serverPort)
+	server := server.NewServer(listenIP, serverPort)
 	fmt.Printf("Start EasyIM In: %s:%d\n", listenIP, serverPort)
 	server.Start()
 }

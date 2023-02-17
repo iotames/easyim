@@ -29,6 +29,16 @@ go mod tidy
 go run . --init
 ```
 
+客户端调试:
+
+```
+# linux下使用nc命令调试
+nc 127.0.0.1 8888
+
+# 使用本项目 `examples` 目录中示例文件调试
+go run client.go -ip 127.0.0.1 -port 8888
+```
+
 
 ## 配置文件
 
