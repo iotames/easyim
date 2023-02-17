@@ -1,0 +1,13 @@
+.idea/
+.vs/
+.vscode/
+runtime/
+*.db
+*.log
+*.cookie
+*.json
+go.sum
+.env
+*.exe
+*.bk
+easyim
