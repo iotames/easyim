@@ -81,7 +81,7 @@ func engineInit(engine *xorm.Engine) {
 	log.Println("Init engineInit End")
 }
 
-func getSnowflakeNode() *snowflake.Node {
+func GetSnowflakeNode() *snowflake.Node {
 	if snode == nil {
 		node, err := snowflake.NewNode(getNodeId())
 		if err != nil {
@@ -114,7 +114,7 @@ type BaseModel struct {
 
 func (b *BaseModel) GenerateID() int64 {
 	if b.ID == 0 {
-		id := getSnowflakeNode().Generate().Int64()
+		id := GetSnowflakeNode().Generate().Int64()
 		if id == 0 {
 			panic("Error: getSnowflakeNode().Generate().Int64() == 0")
 		}
