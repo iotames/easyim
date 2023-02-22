@@ -48,7 +48,7 @@ func (s *Server) Unlock() {
 // 		//将msg发送给全部的在线User
 // 		s.mapLock.Lock()
 // 		for _, u := range s.OnlineMap {
-// 			u.ReceiveData([]byte(msg))
+// 			u.ReceiveDataToSend([]byte(msg))
 // 		}
 // 		s.mapLock.Unlock()
 // 	}

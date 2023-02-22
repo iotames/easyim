@@ -5,19 +5,20 @@ import (
 	"net"
 	"time"
 
+	"github.com/iotames/easyim/server/handler"
 	"github.com/iotames/easyim/server/user"
 )
 
+// Handler 当前链接的业务
 func Handler(s *Server, conn net.Conn) {
-	//...当前链接的业务
-	fmt.Println("链接建立成功")
 	u := user.NewUser(conn, s)
+	u.SetOnConnectStart(func(u user.User) { fmt.Println("TCP连接建立成功") })
 	u.ConnectStart()
 
 	//接受客户端发送的消息
 	go func() {
 		for {
-			err := u.MsgHandler(conn)
+			err := handler.Handler(u)
 			if err != nil {
 				return
 			}

@@ -6,7 +6,6 @@ import (
 	"net"
 
 	"github.com/iotames/easyim/contract"
-	"github.com/iotames/easyim/server/handler"
 )
 
 type User struct {
@@ -42,6 +41,9 @@ func NewUser(conn net.Conn, s contract.IServer) *User {
 func (u User) GetActiveChannel() chan bool {
 	return u.IsActive
 }
+func (u *User) activeSend() {
+	u.IsActive <- true
+}
 
 func (u *User) SetOnConnectLost(f func(u User)) {
 	u.onConnectLost = f
@@ -69,7 +71,8 @@ func (u *User) Close() {
 	// delete(s.OnlineMap, user.Name)
 	// s.mapLock.Unlock()
 
-	u.SendText("你被踢了")
+	// u.ReceiveDataToSend([]byte("连接长时间不活跃，连接已断开")) // 异步操作消息还没发出去，连接就断开了
+	u.sendData([]byte("连接长时间不活跃，连接已断开"))
 	//销毁用的资源
 	close(u.Message)
 	//关闭连接
@@ -77,49 +80,63 @@ func (u *User) Close() {
 
 }
 
-func (u *User) ReceiveData(d []byte) {
+// ReceiveDataToSend 接受消息，并通过channel发送给客户端。异步操作。支持并发。
+// 当连接断开时，可能会继续发送异步消息。此时须使用同步锁
+func (u *User) ReceiveDataToSend(d []byte) {
 	// u.data <- d
 	u.Message <- string(d)
 }
 
-// 给当前User对应的客户端发送消息
-func (u *User) SendText(msg string) {
-	u.SendData([]byte(msg))
+// GetConn 获取TCP连接
+func (u User) GetConn() net.Conn {
+	return u.conn
 }
 
-// 用户处理消息的业务
-func (u *User) MsgHandler(conn net.Conn) error {
-	fmt.Println("---Begin---MsgHandler---", conn.RemoteAddr().String())
-
+// GetConnData 获取TCP客户端发送的数据
+func (u User) GetConnData() (data []byte, err error) {
 	// 最长接受4096长度的信息
 	buf := make([]byte, 4096)
-	n, err := conn.Read(buf)
+
+	// 如用户未发消息，则代码执行到conn.Read停止
+	n, err := u.conn.Read(buf)
+	// 主动或被动(网络不好，或长时间未发消息被踢)断开连接，则继续执行
+
 	if n == 0 {
+		// 客户端主动或意外断开连接
 		fmt.Println("----connect lost-----")
 		u.ConnectLost()
-		return fmt.Errorf("connect lost")
+		err = fmt.Errorf("connect lost")
+		return
 	}
 
-	if err != nil && err != io.EOF {
-		fmt.Println("Conn Read err:", err)
-		return fmt.Errorf("connect read err:%v", err)
+	if err != nil {
+		if err == io.EOF {
+			fmt.Println("----GetConnData--connect Read err(err == io.EOF):", err)
+			err = nil
+		} else {
+			fmt.Println("---GetConnData--connect Read err(err != io.EOF):", err)
+			err = fmt.Errorf("connect read err:%v", err)
+			return
+		}
 	}
+
+	// 如果是命令行输入TCP消息，会包含换行符 \n
+	data = buf[:n]
 
 	//用户的任意消息，代表当前用户是一个活跃的
-	u.IsActive <- true
-	handler.Handler(u, buf[:n])
-
-	return nil
+	u.activeSend()
+	return
 }
 
 // 监听当前User channel的 方法,一旦有消息，就直接发送给对端客户端
 func (u *User) ListenMessage() {
 	for {
 		msg := <-u.Message
-		u.SendData([]byte(msg + "\n"))
+		u.sendData([]byte(msg))
 	}
 }
 
-func (u *User) SendData(d []byte) {
+// sendData 发送数据给客户端。同步操作
+func (u User) sendData(d []byte) {
 	u.conn.Write(d)
 }
