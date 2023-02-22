@@ -9,11 +9,12 @@ import (
 )
 
 type User struct {
-	Name string
-	Addr string
+	Name     string
+	Addr     string
+	IsClosed bool
 	// data    chan []byte
 	Message        chan string
-	IsActive       chan bool
+	isActive       chan bool
 	conn           net.Conn
 	server         contract.IServer
 	onConnectStart func(u User)
@@ -23,26 +24,24 @@ type User struct {
 // 创建一个用户的API
 func NewUser(conn net.Conn, s contract.IServer) *User {
 	userAddr := conn.RemoteAddr().String()
-
-	user := &User{
+	u := &User{
 		Name:     userAddr,
 		Addr:     userAddr,
 		Message:  make(chan string),
-		IsActive: make(chan bool),
+		isActive: make(chan bool),
 		conn:     conn,
 		server:   s,
 	}
 	//启动监听当前user channel消息的goroutine
-	go user.ListenMessage()
-
-	return user
+	go u.ListenMessage()
+	return u
 }
 
 func (u User) GetActiveChannel() chan bool {
-	return u.IsActive
+	return u.isActive
 }
-func (u *User) activeSend() {
-	u.IsActive <- true
+func (u *User) KeepActive() {
+	u.isActive <- true
 }
 
 func (u *User) SetOnConnectLost(f func(u User)) {
@@ -65,19 +64,27 @@ func (u User) ConnectLost() {
 	}
 }
 
-func (u *User) Close() {
+func (u User) IsHttp(data []byte) bool {
+	method := string(data[:4])
+	if method == "POST" || method == "GET " {
+		return true
+	}
+	return false
+}
+
+func (u *User) Close() error {
 	// s.ListenMessage()方法可能强踢后还在写数据
 	// s.mapLock.Lock()
 	// delete(s.OnlineMap, user.Name)
 	// s.mapLock.Unlock()
 
 	// u.ReceiveDataToSend([]byte("连接长时间不活跃，连接已断开")) // 异步操作消息还没发出去，连接就断开了
-	u.sendData([]byte("连接长时间不活跃，连接已断开"))
+	// u.SendData([]byte("连接长时间不活跃，连接已断开")) // OK 给用户发送消息，同步操作
 	//销毁用的资源
 	close(u.Message)
 	//关闭连接
-	u.conn.Close()
-
+	u.IsClosed = true
+	return u.conn.Close()
 }
 
 // ReceiveDataToSend 接受消息，并通过channel发送给客户端。异步操作。支持并发。
@@ -93,7 +100,7 @@ func (u User) GetConn() net.Conn {
 }
 
 // GetConnData 获取TCP客户端发送的数据
-func (u User) GetConnData() (data []byte, err error) {
+func (u *User) GetConnData() (data []byte, err error) {
 	// 最长接受4096长度的信息
 	buf := make([]byte, 4096)
 
@@ -122,9 +129,6 @@ func (u User) GetConnData() (data []byte, err error) {
 
 	// 如果是命令行输入TCP消息，会包含换行符 \n
 	data = buf[:n]
-
-	//用户的任意消息，代表当前用户是一个活跃的
-	u.activeSend()
 	return
 }
 
@@ -132,11 +136,12 @@ func (u User) GetConnData() (data []byte, err error) {
 func (u *User) ListenMessage() {
 	for {
 		msg := <-u.Message
-		u.sendData([]byte(msg))
+		u.SendData([]byte(msg))
 	}
 }
 
-// sendData 发送数据给客户端。同步操作
-func (u User) sendData(d []byte) {
-	u.conn.Write(d)
+// SendData 发送数据给客户端。同步操作
+func (u User) SendData(d []byte) error {
+	_, err := u.conn.Write(d)
+	return err
 }

@@ -12,13 +12,16 @@ import (
 // Handler 当前链接的业务
 func Handler(s *Server, conn net.Conn) {
 	u := user.NewUser(conn, s)
-	u.SetOnConnectStart(func(u user.User) { fmt.Println("TCP连接建立成功") })
+	u.SetOnConnectStart(func(u user.User) {
+		fmt.Println("TCP连接建立成功:", conn.RemoteAddr().String())
+	})
+	u.SetOnConnectLost(func(u user.User) { fmt.Println("TCP连接断开") })
 	u.ConnectStart()
 
 	//接受客户端发送的消息
 	go func() {
 		for {
-			err := handler.Handler(u)
+			err := handler.MainHandler(u)
 			if err != nil {
 				return
 			}
@@ -35,7 +38,9 @@ func Handler(s *Server, conn net.Conn) {
 		case <-time.After(time.Second * time.Duration(s.DropAfter)):
 			//已经超时
 			//将当前的User强制的关闭
-			u.Close()
+			if !u.IsClosed {
+				u.Close()
+			}
 			//退出当前Handler
 			return //runtime.Goexit()
 		}
