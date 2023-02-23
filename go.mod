@@ -9,6 +9,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.7
 	github.com/mattn/go-sqlite3 v1.14.16
+	google.golang.org/protobuf v1.28.1
 	xorm.io/xorm v1.3.2
 )
 

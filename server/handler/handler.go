@@ -34,6 +34,8 @@ func MainHandler(u contract.IUser) error {
 
 	// TODO IM即时通讯业务处理
 	dataStr := "Response:" + string(data)
+	// 接收 FROM_USER 发送给TO_USER
+
 	return u.SendData([]byte(dataStr))
 
 	//提取用户的消息(去除'\n')

@@ -1,0 +1,35 @@
+syntax = "proto3";
+package model;
+option go_package = "../model";
+
+message Msg {
+    string id = 1;
+    uint32 seq = 2;
+    string from_user_id = 3;
+    string to_user_id = 4;
+
+    enum ChatType {
+        SINGLE = 0;
+        GROUP = 1;
+    }
+
+    enum MsgType {
+        TEXT = 0;
+        IMAGE = 1;
+        VOICE = 2;
+        VIDEO = 3;
+    }
+
+    // 未发送，已发送，已送达，已读取
+    enum MsgStatus {
+        FAIL = 0;
+        SENT = 1;
+        ARRIVED = 2;
+        READ = 3;
+    }
+
+    ChatType chat_type = 5;
+    MsgType msg_type = 6;
+    MsgStatus status = 7;
+    string content = 8;
+}

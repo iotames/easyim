@@ -6,6 +6,7 @@ import (
 	"net"
 
 	"github.com/iotames/easyim/contract"
+	"github.com/iotames/easyim/model"
 	"github.com/iotames/miniutils"
 )
 
@@ -153,6 +154,17 @@ func (u *User) ListenMessage() {
 
 // SendData 发送数据给客户端。同步操作
 func (u User) SendData(d []byte) error {
-	_, err := u.conn.Write(d)
+	var err error
+	dp := model.GetDataPack()
+	msg := model.Msg{}
+	err = dp.Unpack(d, &msg)
+	if msg.ChatType == model.Msg_SINGLE {
+		// 单聊。发送给TO_USER
+
+		_, err = u.conn.Write(d)
+	}
+	if msg.ChatType == model.Msg_GROUP {
+		// 群聊。发送给群里的每一个成员。除了自己
+	}
 	return err
 }
