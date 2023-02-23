@@ -3,6 +3,7 @@ package model
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"io"
 	"net"
 	"net/http"
@@ -18,11 +19,23 @@ func NewRequest(data []byte, conn net.Conn) *Request {
 	return &Request{data: data, conn: conn}
 }
 
-func (r Request) ResponseBody(body []byte) error {
-	data := NewOKResponse(body).Response()
-	_, err := r.conn.Write(data)
+func (r Request) ResponseJson(v interface{}) error {
+	var body []byte
+	var err error
+	switch v.(type) {
+	case []byte:
+		body = v.([]byte)
+	case string:
+		body = []byte(v.(string))
+	default:
+		body, err = json.Marshal(v)
+		if err != nil {
+			return err
+		}
+	}
+	data := NewResponseOK(body).Json()
+	_, err = r.conn.Write(data)
 	return err
-
 }
 
 func (r Request) GetData() []byte {

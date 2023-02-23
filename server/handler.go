@@ -11,6 +11,7 @@ import (
 
 // Handler 当前链接的业务
 func Handler(s *Server, conn net.Conn) {
+
 	u := user.NewUser(conn, s)
 	u.SetOnConnectStart(func(u user.User) {
 		fmt.Println("TCP连接建立成功:", conn.RemoteAddr().String())
@@ -23,7 +24,18 @@ func Handler(s *Server, conn net.Conn) {
 		for {
 			err := handler.MainHandler(u)
 			if err != nil {
+				if err.Error() == user.ERR_CONNECT_LOST {
+					return
+				}
+				if !u.IsClosed {
+					u.Close()
+					fmt.Println("--conn-Closed--After--MainHandler--error:", err)
+				}
 				return
+			}
+			if !u.IsClosed {
+				//用户的任意消息，代表当前用户是一个活跃的
+				u.KeepActive()
 			}
 		}
 	}()

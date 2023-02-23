@@ -10,5 +10,4 @@ type IUser interface {
 	GetConn() net.Conn
 	IsHttp([]byte) bool
 	Close() error
-	KeepActive()
 }

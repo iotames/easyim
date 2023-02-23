@@ -6,7 +6,10 @@ import (
 	"net"
 
 	"github.com/iotames/easyim/contract"
+	"github.com/iotames/miniutils"
 )
+
+const ERR_CONNECT_LOST = "connect lost"
 
 type User struct {
 	Name     string
@@ -108,20 +111,28 @@ func (u *User) GetConnData() (data []byte, err error) {
 	n, err := u.conn.Read(buf)
 	// 主动或被动(网络不好，或长时间未发消息被踢)断开连接，则继续执行
 
+	logger := miniutils.GetLogger("")
 	if n == 0 {
 		// 客户端主动或意外断开连接
-		fmt.Println("----connect lost-----")
+		logger.Debug("---user.GetConnData---connect lost---")
 		u.ConnectLost()
-		err = fmt.Errorf("connect lost")
+		if !u.IsClosed {
+			err = u.Close()
+			if err != nil {
+				logger.Error("--GetConnData--u.Close()--error:", err)
+			}
+		}
+		u.IsClosed = true
+		err = fmt.Errorf(ERR_CONNECT_LOST)
 		return
 	}
 
 	if err != nil {
 		if err == io.EOF {
-			fmt.Println("----GetConnData--connect Read err(err == io.EOF):", err)
+			logger.Debug("----GetConnData--connect Read err(err == io.EOF):", err)
 			err = nil
 		} else {
-			fmt.Println("---GetConnData--connect Read err(err != io.EOF):", err)
+			logger.Debug("---GetConnData--connect Read err(err != io.EOF):", err)
 			err = fmt.Errorf("connect read err:%v", err)
 			return
 		}
