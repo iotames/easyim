@@ -7,9 +7,8 @@ import (
 )
 
 func HttpHandler(req *model.Request) error {
-	req.ParseHttp()
 	hreq := req.GetHttpRequest()
 	body := req.GetHttpBody()
-	fmt.Printf("\n--method(%s)--Header(%+v)--Body(%s)-\n", hreq.Method, hreq.Header, string(body))
+	fmt.Printf("\n--method(%s)--proto(%s)--Header(%+v)--Body(%s)-\n", hreq.Method, hreq.Proto, hreq.Header, string(body))
 	return req.ResponseJson(ResponseOk("hello response Json From struct")) //
 }

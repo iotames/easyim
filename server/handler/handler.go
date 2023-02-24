@@ -22,21 +22,47 @@ func MainHandler(u contract.IUser) error {
 		logger.Debug("---handler.MainHandler--error:", err)
 		return err
 	}
-	if u.IsHttp(data) {
-		// HTTP API 接口业务处理
-		err = HttpHandler(model.NewRequest(data, u.GetConn()))
+	dp := model.GetDataPack()
+	if u.IsHttp(data) && u.MsgCount() == 1 {
+		// HTTP API 接口业务处理。不支持HTTP 的 Keep-Alive
+		req := model.NewRequest(data, u.GetConn())
+		req.ParseHttp()
+		if req.IsWebSocket() {
+			// websocket 握手
+			dp.SetProtocol(model.PROTOCOL_WEBSOCKET)
+			return req.ResponseWebSocket()
+		}
+		err = HttpHandler(req)
 		if err != nil {
 			logger.Debug("---handler.MainHandler--HttpHandler--error:", err)
 			return err
 		}
+		// HTTP 一次请求响应后，立即关闭连接。不支持HTTP 的 Keep-Alive
 		return u.Close()
 	}
+	logger.Debug("---------TCP------u.MsgCount=", u.MsgCount())
 
-	// TODO IM即时通讯业务处理
-	dataStr := "Response:" + string(data)
-	// 接收 FROM_USER 发送给TO_USER
+	msg := model.Msg{}
+	err = dp.Unpack(data, &msg)
+	if err != nil {
+		return fmt.Errorf("unpack msg fail:%v", err)
+	}
+	logger.Debug("-----ReceivedMsg(%v)--msg.ChatType(%d)--", msg.String(), msg.ChatType)
+	if msg.ChatType == model.Msg_SINGLE {
+		// 单聊。发送给TO_USER
+		msg.Content += "--Msg_SINGLE--Response--"
+		data, err = dp.Pack(&msg)
+		return u.SendData(data)
+	}
 
-	return u.SendData([]byte(dataStr))
+	if msg.ChatType == model.Msg_GROUP {
+		// 群聊。发送给群里的每一个成员。
+		msg.Content += "--Msg_GROUP--Response--"
+		data, err = dp.Pack(&msg)
+		return u.SendData(data)
+	}
+
+	return fmt.Errorf("unknown ChatType")
 
 	//提取用户的消息(去除'\n')
 	// msg := string(data[:n-1])
@@ -49,5 +75,5 @@ func MainHandler(u contract.IUser) error {
 	//	} else {
 	//		u.server.BroadCast(u, msg)
 	//	}
-	// return nil
+
 }

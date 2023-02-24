@@ -11,6 +11,7 @@ import (
 )
 
 type DataPack struct {
+	protocol  string
 	msgFormat string
 }
 
@@ -33,14 +34,19 @@ func NewDataPack(msgFormat string) *DataPack {
 	return &DataPack{msgFormat: msgFormat}
 }
 
+func (dp *DataPack) SetProtocol(protocol string) {
+	dp.protocol = protocol
+}
+
 func (dp DataPack) Pack(data protoreflect.ProtoMessage) (result []byte, err error) {
 	if dp.msgFormat == config.MSG_FORMAT_JSON {
 		result, err = json.Marshal(data)
-		return
 	}
 	if dp.msgFormat == config.MSG_FORMAT_PROTOBUF {
 		result, err = proto.Marshal(data)
-		return
+	}
+	if dp.protocol == PROTOCOL_WEBSOCKET {
+		result = WebSocketPackage(result)
 	}
 	if dp.msgFormat != config.MSG_FORMAT_JSON && dp.msgFormat != config.MSG_FORMAT_PROTOBUF {
 		err = fmt.Errorf("msgFormat(%v) can not Pack.", dp.msgFormat)
@@ -49,6 +55,9 @@ func (dp DataPack) Pack(data protoreflect.ProtoMessage) (result []byte, err erro
 }
 
 func (dp DataPack) Unpack(data []byte, result protoreflect.ProtoMessage) error {
+	if dp.protocol == PROTOCOL_WEBSOCKET {
+		data = WebSocketParse(data)
+	}
 	if dp.msgFormat == config.MSG_FORMAT_JSON {
 		return json.Unmarshal(data, result)
 	}

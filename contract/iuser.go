@@ -11,5 +11,6 @@ type IUser interface {
 	GetConnData() ([]byte, error)
 	GetConn() net.Conn
 	IsHttp([]byte) bool
+	MsgCount() int
 	Close() error
 }

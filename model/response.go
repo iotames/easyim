@@ -2,6 +2,7 @@ package model
 
 import (
 	"bytes"
+
 	"fmt"
 	"net/http"
 	"strings"
@@ -20,7 +21,7 @@ func NewResponseOK(body []byte) *Response {
 	return NewResponse(http.StatusOK, body)
 }
 
-func (r Response) GetHeader() []string {
+func (r Response) getHeader() []string {
 	bodyLen := len(r.body)
 	return []string{
 		fmt.Sprintf("HTTP/1.1 %d %s", r.statusCode, http.StatusText(r.statusCode)),
@@ -40,16 +41,16 @@ func (r Response) GetHeader() []string {
 	// https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Access-Control-Allow-Credentials
 }
 
-func (r Response) Json() []byte {
-	header := r.GetHeader()
+func (r Response) HttpJson() []byte {
+	header := r.getHeader()
 	header = append(header, "Content-Type: application/json; charset=utf-8")
 	headerText := strings.Join(header, "\n")
 	return bytes.Join([][]byte{[]byte(headerText), r.body}, []byte("\n\r\n"))
 	// return []byte(headerText + "\n\r\n" + string(r.body))
 }
 
-func (r Response) Html() []byte {
-	header := r.GetHeader()
+func (r Response) HttpHtml() []byte {
+	header := r.getHeader()
 	header = append(header, "Content-Type: text/html; charset=utf-8")
 	headerText := strings.Join(header, "\n")
 	return []byte(headerText + "\n\r\n" + string(r.body))
