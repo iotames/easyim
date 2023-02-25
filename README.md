@@ -27,6 +27,12 @@ go mod tidy
 
 # 首次运行，添加初始化参数--init，初始化数据库
 go run . --init
+
+# 正常开发时调试运行
+go run .
+
+# 编译为二进制文件. 然后直接运行./easyim(easyim.exe)
+go build .
 ```
 
 客户端调试:
@@ -63,6 +69,7 @@ IM数据通讯的长连接，支持数据传输 `json`, `protobuf` 两种格式�
 | msg_type   | MsgType     | 消息类型(MsgType枚举类型:0文本,1图片,2语音,3视频) |
 | status   | MsgStatus     | 消息状态(MsgStatus枚举类型:0未发送,1已发送,2已送达,3已读取) |
 | content   | string     | 消息内容，字符串类型 |
+| access_token | string | 鉴权令牌，字符串类型。用户登录成功后获取|
 
 请参看 [protobuf/msg.proto](https://github.com/iotames/easyim/blob/master/protobuf/msg.proto)文件
 

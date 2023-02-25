@@ -55,3 +55,26 @@ func (r Response) HttpHtml() []byte {
 	headerText := strings.Join(header, "\n")
 	return []byte(headerText + "\n\r\n" + string(r.body))
 }
+
+type JsonObject map[string]interface{}
+type ResponseApiData struct {
+	Code int
+	Msg  string
+	Data JsonObject
+}
+
+func ResponseApi(data JsonObject, msg string, code int) ResponseApiData {
+	return ResponseApiData{Data: data, Msg: msg, Code: code}
+}
+
+func ResponseOk(msg string) ResponseApiData {
+	return ResponseApi(JsonObject{}, msg, http.StatusOK)
+}
+
+func ResponseFail(msg string, code int) ResponseApiData {
+	return ResponseApi(JsonObject{}, msg, code)
+}
+
+func ResponseItems(items interface{}) ResponseApiData {
+	return ResponseApi(JsonObject{"Items": items}, "success", http.StatusOK)
+}

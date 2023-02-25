@@ -126,7 +126,6 @@ func (u *User) GetConnData() (data []byte, err error) {
 	logger := miniutils.GetLogger("")
 	if n == 0 {
 		// 客户端主动或意外断开连接
-		logger.Debug("---user.GetConnData---connect lost---")
 		u.ConnectLost()
 		if !u.IsClosed {
 			err = u.Close()

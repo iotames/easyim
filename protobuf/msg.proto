@@ -32,4 +32,5 @@ message Msg {
     MsgType msg_type = 6;
     MsgStatus status = 7;
     string content = 8;
+    string access_token = 9;
 }
