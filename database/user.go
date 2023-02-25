@@ -10,8 +10,8 @@ import (
 )
 
 type JwtInfo struct {
-	Token     string
-	Expiresin int
+	AccessToken, RefreshToken string
+	Expiresin                 int
 }
 
 type User struct {
@@ -21,6 +21,7 @@ type User struct {
 	PasswordHash string `xorm:"varchar(64) notnull 'password_hash'"` //  comment('密码哈希')
 	Account      string `xorm:"varchar(64) notnull unique"`          //  comment('用户名')
 	Name         string `xorm:"varchar(32) notnull"`                 //  comment('真实姓名')
+	Nickname     string `xorm:"varchar(32) notnull"`                 //  comment('用户昵称')
 	Mobile       string `xorm:"varchar(32) notnull unique"`          // comment('手机号')
 	Email        string `xorm:"varchar(32) notnull unique"`          //  comment('电子邮箱')
 	Avatar       string `xorm:"varchar(500) notnull"`                // comment('用户头像')
@@ -67,10 +68,12 @@ func (u User) GetUserByJwt(jwtStr string) (user User, err error) {
 }
 
 func (u User) GetJwtInfo() JwtInfo {
-	expiresin := 3600 * 24 * 7 // 有效期 7 天
+	expiresin := 7200           // 有效期 2 小时
+	refreshExpiresin := 2592000 // 有效期 30 天. 超长有效期的refresh_token有效防止泄露用户密码
 	return JwtInfo{
-		Token:     u.getJwt(expiresin),
-		Expiresin: expiresin,
+		AccessToken:  u.getJwt(expiresin),
+		RefreshToken: u.getJwt(refreshExpiresin),
+		Expiresin:    expiresin,
 	}
 }
 
@@ -91,22 +94,33 @@ func (u User) Register(password string) (User, error) {
 	if u.Account != "" {
 		user.Account = u.Account
 		GetModel(user)
+		if user.ID > 0 {
+			return User{}, fmt.Errorf("注册失败！登录账号已存在")
+		}
 	}
 	if u.Mobile != "" {
 		user.Mobile = u.Mobile
 		GetModel(user)
+		if user.ID > 0 {
+			return User{}, fmt.Errorf("注册失败！手机号已存在")
+		}
 	}
 	if user.ID > 0 {
 		return User{}, fmt.Errorf("error: Regiser Fail. User exists")
+	}
+	if u.Account == "" && u.Mobile == "" {
+		return User{}, fmt.Errorf("注册失败！登录账号不能为空")
 	}
 	user.Account = u.Account
 	user.Mobile = u.Mobile
 	user.Avatar = u.Avatar
 	user.Name = u.Name
+	user.Email = u.Email
+	user.Nickname = u.Nickname
 	user.RemoteAddr = u.RemoteAddr
 	user.ResetSalt()
 	if password == "" {
-		return User{}, fmt.Errorf("error: Regiser Fail. User password can not be empty")
+		return User{}, fmt.Errorf("注册失败！用户密码不能为空")
 	}
 	user.SetPasswordHash(password)
 	affected, err := CreateModel(user)

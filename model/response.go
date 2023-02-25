@@ -58,9 +58,13 @@ func (r Response) HttpHtml() []byte {
 
 type JsonObject map[string]interface{}
 type ResponseApiData struct {
-	Code int
-	Msg  string
-	Data JsonObject
+	Code int        `json:"code"`
+	Msg  string     `json:"msg"`
+	Data JsonObject `json:"data"`
+}
+
+func (r ResponseApiData) Write(req Request) error {
+	return req.ResponseJson(r)
 }
 
 func ResponseApi(data JsonObject, msg string, code int) ResponseApiData {
@@ -71,10 +75,30 @@ func ResponseOk(msg string) ResponseApiData {
 	return ResponseApi(JsonObject{}, msg, http.StatusOK)
 }
 
+func ResponseItems(items interface{}) ResponseApiData {
+	return ResponseApi(JsonObject{"Items": items}, "success", http.StatusOK)
+}
+
 func ResponseFail(msg string, code int) ResponseApiData {
 	return ResponseApi(JsonObject{}, msg, code)
 }
 
-func ResponseItems(items interface{}) ResponseApiData {
-	return ResponseApi(JsonObject{"Items": items}, "success", http.StatusOK)
+func ResponseNotFound() ResponseApiData {
+	return ResponseFail("NotFound.无法找到请求对象", http.StatusNotFound)
+}
+
+func ResponseUnauthorized() ResponseApiData {
+	return ResponseFail("Unauthorized.您没有权限访问此页面", http.StatusUnauthorized)
+}
+
+func ResponseMethodNotAllowed() ResponseApiData {
+	return ResponseFail("MethodNotAllowed.不允许的请求方法", http.StatusMethodNotAllowed)
+}
+
+func ResponseServerError() ResponseApiData {
+	return ResponseFail("ServerError.服务器内部错误", http.StatusInternalServerError)
+}
+
+func ResponseQueryArgsError(msg string) ResponseApiData {
+	return ResponseFail("QueryArgsError.请求参数错误:"+msg, http.StatusBadRequest)
 }

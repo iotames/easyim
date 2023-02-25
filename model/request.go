@@ -69,6 +69,10 @@ func (r Request) GetData() []byte {
 	return r.data
 }
 
+func (r Request) GetHttpBodyToJson(v interface{}) error {
+	return json.Unmarshal(r.GetHttpBody(), v)
+}
+
 func (r *Request) ParseHttp() error {
 	data := r.GetData()
 	reader := bytes.NewReader(data)
