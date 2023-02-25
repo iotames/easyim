@@ -11,7 +11,6 @@ import (
 
 // Handler 当前链接的业务
 func Handler(s *Server, conn net.Conn) {
-
 	u := user.NewUser(conn, s)
 	u.SetOnConnectStart(func(u user.User) {
 		fmt.Println("TCP连接建立成功:", conn.RemoteAddr().String())

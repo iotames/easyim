@@ -1,10 +1,10 @@
 ## 简介
 
-easyim 是一个简单易用，对二次开发友好，方便部署的即时通讯服务器。
+easyim 是一个简单易用，二开友好，方便部署的即时通讯服务器。如数据量大、对性能有要求，请自行扩展，并将`sqlite3` 替换为其他数据库。
 
-如数据量大、对性能有要求，请将`sqlite3` 替换为其他数据库。
+在线文档: [https://imdocs.catmes.com](https://imdocs.catmes.com)
 
-代码源于刘丹冰老师视频：[8小时转职Golang工程师](https://www.bilibili.com/video/BV1gf4y1r79E/) - 即时通讯系统
+代码源于刘丹冰老师视频教程：[8小时转职Golang工程师](https://www.bilibili.com/video/BV1gf4y1r79E/) - 即时通讯系统
 
 
 ## 开发环境
@@ -64,7 +64,7 @@ IM数据通讯的长连接，支持数据传输 `json`, `protobuf` 两种格式�
 | status   | MsgStatus     | 消息状态(MsgStatus枚举类型:0未发送,1已发送,2已送达,3已读取) |
 | content   | string     | 消息内容，字符串类型 |
 
-请参看 [protobuf/msg.proto](protobuf/msg.proto)文件
+请参看 [protobuf/msg.proto](https://github.com/iotames/easyim/blob/master/protobuf/msg.proto)文件
 
 
 ## 在线文档

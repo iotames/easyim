@@ -16,12 +16,15 @@ func MainHandler(u contract.IUser) error {
 	if err != nil {
 		return err
 	}
+
+	// 数据过滤
 	lendata := len(data)
 	if lendata < 10 {
 		err = fmt.Errorf("req data too small")
 		logger.Debug("---handler.MainHandler--error:", err)
 		return err
 	}
+
 	dp := model.GetDataPack()
 	if u.IsHttp(data) && u.MsgCount() == 1 {
 		// HTTP API 接口业务处理。不支持HTTP 的 Keep-Alive
@@ -40,7 +43,8 @@ func MainHandler(u contract.IUser) error {
 		// HTTP 一次请求响应后，立即关闭连接。不支持HTTP 的 Keep-Alive
 		return u.Close()
 	}
-	logger.Debug("---------TCP------u.MsgCount=", u.MsgCount())
+
+	logger.Debug("---TCP---ReceivedMessage--SUCCESS-----u.MsgCount=", u.MsgCount())
 
 	msg := model.Msg{}
 	err = dp.Unpack(data, &msg)
@@ -48,6 +52,8 @@ func MainHandler(u contract.IUser) error {
 		return fmt.Errorf("unpack msg fail:%v", err)
 	}
 	logger.Debug("-----ReceivedMsg(%v)--msg.ChatType(%d)--", msg.String(), msg.ChatType)
+	// TODO 用户身份鉴权
+
 	if msg.ChatType == model.Msg_SINGLE {
 		// 单聊。发送给TO_USER
 		msg.Content += "--Msg_SINGLE--Response--"
