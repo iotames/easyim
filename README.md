@@ -76,12 +76,24 @@ IM数据通讯的长连接，支持数据传输 `json`, `protobuf` 两种格式�
 
 ## 在线文档
 
-全局安装 `docsify` 文档生成工具: 
+### docsify 文档工具
 
 ```
+# 全局安装 docsify 文档生成工具
 npm i docsify-cli -g
+# 文档初始化
+docsify init ./docs
+# 本地预览. 默认地址: http://localhost:3000
+docsify serve docs
 ```
 
-- 文档初始化: `docsify init ./docs`
+### apidoc 文档工具
 
-- 本地预览: `docsify serve docs`
+```
+# 全局安装 apidoc 文档工具，可以根据代码注释，生成API文档
+npm install -g apidoc
+# 扫描 server/handler 目录中的代码注释，在 docs/apidoc 目录生成API文档
+apidoc -i server/handler -o docs/apidoc
+# 配置文件 apidoc.json
+# 默认地址: http://localhost:3000/apidoc/index.html
+```

@@ -95,21 +95,18 @@ func (u User) Register(password string) (User, error) {
 		user.Account = u.Account
 		GetModel(user)
 		if user.ID > 0 {
-			return User{}, fmt.Errorf("注册失败！登录账号已存在")
+			return User{}, fmt.Errorf("登录账号已存在")
 		}
 	}
 	if u.Mobile != "" {
 		user.Mobile = u.Mobile
 		GetModel(user)
 		if user.ID > 0 {
-			return User{}, fmt.Errorf("注册失败！手机号已存在")
+			return User{}, fmt.Errorf("手机号已存在")
 		}
 	}
-	if user.ID > 0 {
-		return User{}, fmt.Errorf("error: Regiser Fail. User exists")
-	}
 	if u.Account == "" && u.Mobile == "" {
-		return User{}, fmt.Errorf("注册失败！登录账号不能为空")
+		return User{}, fmt.Errorf("登录账号不能为空")
 	}
 	user.Account = u.Account
 	user.Mobile = u.Mobile

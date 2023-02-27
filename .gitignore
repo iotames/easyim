@@ -11,3 +11,4 @@ go.sum
 *.exe
 *.bk
 easyim
+docs/apidoc
