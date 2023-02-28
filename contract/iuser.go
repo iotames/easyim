@@ -11,6 +11,8 @@ type IUser interface {
 	GetConnData() ([]byte, error)
 	GetConn() net.Conn
 	IsHttp([]byte) bool
+	IsWebSocket() bool
+	SetProtocol(proto string)
 	MsgCount() int
 	Close() error
 }

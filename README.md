@@ -11,12 +11,14 @@ easyim 是一个简单易用，二开友好，方便部署的即时通讯服务�
 
 下载并安装Go: https://golang.google.cn/doc/install
 
-设置GO国内代理:
-
 ```
+# 开启 module 功能
 go env -w GO111MODULE=on
+# 设置GO国内代理. 若执行 go mod tidy 命令提示模块下载失败. 请更换模块代理再重试 go env -w GOPROXY=https://goproxy.cn,direct
 go env -w GOPROXY=https://goproxy.io,direct
 ```
+
+Windows环境下，如发现 `cgo` 报错，可能为 `sqlite3` 组件编译错误。请安装C编译器 [TDM-GCC](https://jmeubank.github.io/tdm-gcc/download/) 或 [Mingw-w64](https://github.com/niXman/mingw-builds-binaries/releases/latest)
 
 
 ## 快速开始
@@ -72,6 +74,21 @@ IM数据通讯的长连接，支持数据传输 `json`, `protobuf` 两种格式�
 | access_token | string | 鉴权令牌，字符串类型。用户登录成功后获取|
 
 请参看 [protobuf/msg.proto](https://github.com/iotames/easyim/blob/master/protobuf/msg.proto)文件
+
+
+## 在线调试
+
+1. 在 `.env` 文件中，设置 `MSG_FORMAT = "json"`
+2. 进入 websocket 在线调试网页: [https://websocketking.com/](https://websocketking.com/) 或 [http://www.websocket-test.com/](http://www.websocket-test.com/)
+3. 输入连接地址. 如: `ws://127.0.0.1:8888`. 然后点击连接
+4. 连接成功后，在对话框中，发送符合规范的 json 格式数据，查看服务器数据响应。
+5. 如发送数据不符合规范，服务器会断开连接。
+
+json格式数据示例:
+
+```
+{"id":"1630392697653039104","seq":0,"from_user_id":"1630381388895096832","to_user_id":"1630381388895666666","chat_type":0,"msg_type":0,"status":1,"content":"hello word.can you received ?","access_token":"aa.bbb.cc"}
+```
 
 
 ## 在线文档

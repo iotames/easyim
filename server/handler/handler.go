@@ -24,15 +24,18 @@ func MainHandler(u contract.IUser) error {
 		logger.Debug("---handler.MainHandler--error:", err)
 		return err
 	}
+	isHttp := u.IsHttp(data)
+	msgCount := u.MsgCount()
 
 	dp := model.GetDataPack()
-	if u.IsHttp(data) && u.MsgCount() == 1 {
+	if isHttp && msgCount == 1 {
 		// HTTP API 接口业务处理。不支持HTTP 的 Keep-Alive
 		req := model.NewRequest(data, u.GetConn())
 		req.ParseHttp()
 		if req.IsWebSocket() {
 			// websocket 握手
 			dp.SetProtocol(model.PROTOCOL_WEBSOCKET)
+			u.SetProtocol(model.PROTOCOL_WEBSOCKET)
 			return req.ResponseWebSocket()
 		}
 		err = HttpHandler(req)
@@ -52,18 +55,22 @@ func MainHandler(u contract.IUser) error {
 		return fmt.Errorf("unpack msg fail:%v", err)
 	}
 	logger.Debug("-----ReceivedMsg(%v)--msg.ChatType(%d)--", msg.String(), msg.ChatType)
-	// TODO 用户身份鉴权
+	// 在线调试 http://www.websocket-test.com/, https://websocketking.com/
+
+	if (u.IsWebSocket() && msgCount == 2) || (!u.IsWebSocket() && msgCount == 1) {
+		// 接收到的第一条消息
+		// TODO 用户身份鉴权, 添加到聊天室
+
+	}
 
 	if msg.ChatType == model.Msg_SINGLE {
 		// 单聊。发送给TO_USER
-		msg.Content += "--Msg_SINGLE--Response--"
 		data, err = dp.Pack(&msg)
 		return u.SendData(data)
 	}
 
 	if msg.ChatType == model.Msg_GROUP {
 		// 群聊。发送给群里的每一个成员。
-		msg.Content += "--Msg_GROUP--Response--"
 		data, err = dp.Pack(&msg)
 		return u.SendData(data)
 	}

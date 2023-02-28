@@ -265,6 +265,11 @@ func userRefreshToken(req *model.Request) error {
 	return model.ResponseFail("grant_type不正确", 400).Write(*req)
 }
 
+// TODO 我的好友
+// TODO 添加好友
+// TODO 根据用户名搜索用户
+// TODO 删除好友
+
 /**
  * @apiDefine PublicCommonParams
  * @apiSuccess {integer} code 状态码(请求成功为200)

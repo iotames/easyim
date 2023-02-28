@@ -5,6 +5,7 @@ import (
 )
 
 type GroupChat struct {
-	ID    int64
-	Users []contract.IUser
+	ID       int64
+	msgCount int
+	Users    []contract.IUser
 }

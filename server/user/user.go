@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/iotames/easyim/contract"
+	"github.com/iotames/easyim/model"
 	"github.com/iotames/miniutils"
 )
 
@@ -16,6 +17,7 @@ const ERR_CONNECT_LOST = "connect lost"
 type User struct {
 	Name           string
 	Addr           string
+	protocol       string
 	IsClosed       bool
 	message        chan []byte
 	msgCount       int
@@ -82,6 +84,17 @@ func (u User) IsHttp(data []byte) bool {
 		}
 	}
 	return isHttp
+}
+
+func (u *User) SetProtocol(proto string) {
+	u.protocol = proto
+}
+
+func (u User) IsWebSocket() bool {
+	if u.protocol == model.PROTOCOL_WEBSOCKET {
+		return true
+	}
+	return false
 }
 
 func (u User) MsgCount() int {
