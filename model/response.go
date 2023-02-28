@@ -28,13 +28,13 @@ func (r Response) getHeader() []string {
 		fmt.Sprintf("Content-Length: %d", bodyLen),
 		"Connection: close", // Connection: keep-alive
 		"Server: easyim",
-		// // ALLOW CORS START
-		// "Access-Control-Allow-Credentials: true",
-		// "Access-Control-Allow-Headers: Origin, Content-Length, Content-Type, Accept, Token, Auth-Token, X-Requested-With",
-		// "Access-Control-Allow-Methods: POST, GET, OPTIONS, PUT, DELETE, UPDATE",
-		// "Access-Control-Allow-Origin: *",
-		// "Access-Control-Expose-Headers: Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Cache-Control, Content-Language, Content-Type",
-		// // ALLOW CORS END
+		// ALLOW CORS START
+		"Access-Control-Allow-Credentials: true",
+		"Access-Control-Allow-Headers: Origin, Content-Length, Content-Type, Accept, Token, Auth-Token, X-Requested-With",
+		"Access-Control-Allow-Methods: POST, GET, OPTIONS, PUT, DELETE, UPDATE",
+		"Access-Control-Allow-Origin: *",
+		"Access-Control-Expose-Headers: Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Cache-Control, Content-Language, Content-Type",
+		// ALLOW CORS END
 		// "Keep-Alive: timeout=4",
 		// "Date: Wed, 22 Feb 2023 09:58:51 GMT",
 	}

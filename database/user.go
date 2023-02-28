@@ -36,30 +36,74 @@ func GetDefaultAvatar() string {
 	return "https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png"
 }
 
-func (u User) getJwt(expiresin int) string {
-	jwt := miniutils.NewJwt(u.Salt)
-	info := map[string]interface{}{
-		"id":      u.ID,
-		"account": u.Account,
-		"avatar":  u.Avatar,
+func (u User) Logout(token string) error {
+	claims, err := u.CheckTokenGrantType(token, ACCESS_TOKEN)
+	if err != nil {
+		return err
 	}
+	u, err = u.GetUserByJwt(token, claims)
+	if err != nil {
+		return err
+	}
+	return u.UpdateSalt()
+}
+
+func (u *User) UpdateSalt() error {
+	u.ResetSalt()
+	_, err := UpdateModel(u, map[string]interface{}{"salt": u.Salt})
+	return err
+}
+
+func (u User) CheckTokenGrantType(token string, match string) (claims map[string]interface{}, err error) {
+	claims, err = u.DecodeJwt(token)
+	if err != nil {
+		return
+	}
+	grantType, ok := claims[GRANT_TYPE]
+	if !ok {
+		err = fmt.Errorf("grant_type not found in token claims")
+		return
+	}
+	if grantType.(string) != match {
+		err = fmt.Errorf("the token must be " + match)
+	}
+	return
+}
+
+func (u User) getJwt(expiresin int, info map[string]interface{}) string {
+	jwt := miniutils.NewJwt(u.Salt)
 	token, _ := jwt.Create(info, time.Second*time.Duration(expiresin))
 	return token
 }
 
-func (u User) GetUserByJwt(jwtStr string) (user User, err error) {
-	var segInfo map[string]interface{}
+func (u User) DecodeJwt(jwtToken string) (map[string]interface{}, error) {
 	jwt := miniutils.NewJwt("")
-	segInfo, err = jwt.Decode(jwtStr)
+	return jwt.Decode(jwtToken)
+}
+
+// GetUserByJwt 根据JWT字符串获取用户对象。
+// claims 可以为 nill
+func (u User) GetUserByJwt(jwtStr string, claims map[string]interface{}) (user User, err error) {
+	if claims == nil {
+		claims, err = u.DecodeJwt(jwtStr)
+		if err != nil {
+			return
+		}
+	}
+	jsUid := claims["id"].(json.Number)
+	var uid int64
+	uid, err = jsUid.Int64()
 	if err != nil {
 		return
 	}
-	jsUid := segInfo["id"].(json.Number)
-	uid, _ := jsUid.Int64()
 	user.ID = uid
 	GetModel(&user) // user.Department, user.Position empty
-	log.Println("---FoundUser--By--Jwt---user.Salt------", user.Salt)
-	jwt = miniutils.NewJwt(user.Salt)
+	if user.Account == "" {
+		err = fmt.Errorf("user not found")
+		user = User{}
+		return
+	}
+	jwt := miniutils.NewJwt(user.Salt)
 	_, err = jwt.Parse(jwtStr)
 	if err != nil {
 		log.Println("--GetUserByJwt--Error:", err)
@@ -67,13 +111,45 @@ func (u User) GetUserByJwt(jwtStr string) (user User, err error) {
 	return
 }
 
+const (
+	ACCESS_TOKEN  = "access_token"
+	REFRESH_TOKEN = "refresh_token"
+	GRANT_TYPE    = "grant_type"
+)
+
+func (u User) GetTokenExpiresIn(grantType string) int {
+	if grantType == ACCESS_TOKEN {
+		return 7200 // 有效期 2 小时
+	}
+	if grantType == REFRESH_TOKEN {
+		return 2592000 // 有效期 30 天. 超长有效期的refresh_token有效防止泄露用户密码
+	}
+	return 0
+}
+
+func (u User) GetAccessToken() string {
+	tokenInfo := map[string]interface{}{
+		"id":       u.ID,
+		"account":  u.Account,
+		GRANT_TYPE: ACCESS_TOKEN,
+	}
+	return u.getJwt(u.GetTokenExpiresIn(ACCESS_TOKEN), tokenInfo)
+}
+
+func (u User) GetRefreshToken() string {
+	refreshInfo := map[string]interface{}{
+		"id":       u.ID,
+		"account":  u.Account,
+		GRANT_TYPE: REFRESH_TOKEN,
+	}
+	return u.getJwt(u.GetTokenExpiresIn(REFRESH_TOKEN), refreshInfo)
+}
+
 func (u User) GetJwtInfo() JwtInfo {
-	expiresin := 7200           // 有效期 2 小时
-	refreshExpiresin := 2592000 // 有效期 30 天. 超长有效期的refresh_token有效防止泄露用户密码
 	return JwtInfo{
-		AccessToken:  u.getJwt(expiresin),
-		RefreshToken: u.getJwt(refreshExpiresin),
-		Expiresin:    expiresin,
+		AccessToken:  u.GetAccessToken(),
+		RefreshToken: u.GetRefreshToken(),
+		Expiresin:    u.GetTokenExpiresIn(ACCESS_TOKEN),
 	}
 }
 
@@ -107,6 +183,18 @@ func (u User) Register(password string) (User, error) {
 	}
 	if u.Account == "" && u.Mobile == "" {
 		return User{}, fmt.Errorf("登录账号不能为空")
+	}
+	if u.Account == "" {
+		u.Account = u.Mobile
+	}
+	if u.Mobile == "" {
+		u.Mobile = u.Account
+	}
+	if u.Email == "" {
+		u.Email = u.Account + "@example.com"
+	}
+	if u.Avatar == "" {
+		u.Avatar = GetDefaultAvatar()
 	}
 	user.Account = u.Account
 	user.Mobile = u.Mobile
