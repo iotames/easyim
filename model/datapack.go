@@ -46,7 +46,7 @@ func (dp DataPack) Pack(data protoreflect.ProtoMessage) (result []byte, err erro
 		result, err = proto.Marshal(data)
 	}
 	if dp.protocol == PROTOCOL_WEBSOCKET {
-		result = WebSocketPackage(result)
+		result = WebSocketPack(result)
 	}
 	if dp.msgFormat != config.MSG_FORMAT_JSON && dp.msgFormat != config.MSG_FORMAT_PROTOBUF {
 		err = fmt.Errorf("msgFormat(%v) can not Pack.", dp.msgFormat)
@@ -56,7 +56,7 @@ func (dp DataPack) Pack(data protoreflect.ProtoMessage) (result []byte, err erro
 
 func (dp DataPack) Unpack(data []byte, result protoreflect.ProtoMessage) error {
 	if dp.protocol == PROTOCOL_WEBSOCKET {
-		data = WebSocketParse(data)
+		data = WebSocketUnpack(data)
 	}
 	if dp.msgFormat == config.MSG_FORMAT_JSON {
 		return json.Unmarshal(data, result)

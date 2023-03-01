@@ -10,7 +10,7 @@ func BytesCombine(pBytes ...[]byte) []byte {
 	return bytes.Join(pBytes, []byte(""))
 }
 
-func WebSocketParse(data []byte) []byte {
+func WebSocketUnpack(data []byte) []byte {
 	en_bytes := []byte("")
 	cn_bytes := make([]int, 0)
 
@@ -71,7 +71,7 @@ func WebSocketParse(data []byte) []byte {
 	return en_bytes
 }
 
-func WebSocketPackage(data []byte) []byte {
+func WebSocketPack(data []byte) []byte {
 	lenth := len(data)
 	token := string(0x81)
 	if lenth < 126 {

@@ -5,7 +5,6 @@ runtime/
 *.db
 *.log
 *.cookie
-*.json
 go.sum
 .env
 *.exe
