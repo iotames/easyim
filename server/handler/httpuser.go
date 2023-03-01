@@ -26,22 +26,22 @@ import (
  * {"code":400,"msg":"密码不正确","data":{}}
  * @apiUse LoginOrRegisterSuccessBlock
  */
-func userLogin(req *model.Request) error {
+func userLogin(req *model.Request, resp *model.Response) model.Response {
 	postData := UserLoginForm{}
 	err := req.GetHttpBodyToJson(&postData)
 	if err != nil {
-		return req.ResponseJson(model.ResponseQueryArgsError(err.Error()))
+		return resp.Json(model.ResponseQueryArgsError(err.Error()))
 	}
 	user := new(database.User)
 	user.Account = postData.Account
 	database.GetModel(user)
 	if user.ID == 0 {
-		return model.ResponseFail("找不到登录账号", 400).Write(*req)
+		return resp.Json(model.ResponseFail("找不到登录账号", 400))
 	}
 	if !user.CheckPassword(postData.Password) {
-		return model.ResponseFail("密码不正确", 400).Write(*req)
+		return resp.Json(model.ResponseFail("密码不正确", 400))
 	}
-	return loginOrRegisterSuccess(*user, *req)
+	return loginOrRegisterSuccess(*user, resp)
 }
 
 /**
@@ -55,18 +55,18 @@ func userLogin(req *model.Request) error {
  * {"code":400,"msg":"注册失败！登录账号已存在","data":{}}
  * @apiUse LoginOrRegisterSuccessBlock
  */
-func userRegister(req *model.Request) error {
+func userRegister(req *model.Request, resp *model.Response) model.Response {
 	postData := UserRegisterForm{}
 	err := req.GetHttpBodyToJson(&postData)
 	if err != nil {
-		return req.ResponseJson(model.ResponseQueryArgsError(err.Error()))
+		return resp.Json(model.ResponseQueryArgsError(err.Error()))
 	}
 	u := database.User{Account: postData.Account, Nickname: postData.Nickname}
 	u, err = u.Register(postData.Password)
 	if err != nil {
-		return model.ResponseFail(err.Error(), 400).Write(*req)
+		return resp.Json(model.ResponseFail(err.Error(), 400))
 	}
-	return loginOrRegisterSuccess(u, *req)
+	return loginOrRegisterSuccess(u, resp)
 }
 
 /**
@@ -80,7 +80,7 @@ func userRegister(req *model.Request) error {
  * @apiSuccessExample {json} 请求成功示例
  * {"code":200,"msg":"success","data":{"access_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2NvdW50IjoiYWNjb3VudFd1aGFucWluZyIsImF2YXRhciI6IiIsImV4cCI6MTY3NzQ3NDkxNCwiaWQiOjE2Mjk0MjA5MjQ5MTI1Mzc2MDB9.IucceY2x7FSB81-nxEj_yMYggYaBnCzEX1GA8LdzPCE","avatar":"https://gw.alipayobjects.com/zos/antfincdn/XAosXuNZyF/BiazfanxmamNRoxxVxka.png","expires_in":7200,"id":"1629420924912537600","nickname":"飞天的猪","refresh_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2NvdW50IjoiYWNjb3VudFd1aGFucWluZyIsImF2YXRhciI6IiIsImV4cCI6MTY4MDA1OTcxNCwiaWQiOjE2Mjk0MjA5MjQ5MTI1Mzc2MDB9.Mu4N8-uegCdq26ocIx7HINmoUgLyrwpqo4cYDslHwzs"}}
  */
-func loginOrRegisterSuccess(u database.User, req model.Request) error {
+func loginOrRegisterSuccess(u database.User, resp *model.Response) model.Response {
 	jwtInfo := u.GetJwtInfo()
 	data := model.JsonObject{
 		"id":            fmt.Sprintf("%d", u.ID),
@@ -90,7 +90,7 @@ func loginOrRegisterSuccess(u database.User, req model.Request) error {
 		"expires_in":    jwtInfo.Expiresin,
 		"refresh_token": jwtInfo.RefreshToken,
 	}
-	return model.ResponseApi(data, "success", 200).Write(req)
+	return resp.Json(model.ResponseApi(data, "success", 200))
 }
 
 /**
@@ -103,51 +103,51 @@ func loginOrRegisterSuccess(u database.User, req model.Request) error {
  * @apiSuccessExample {json} 请求成功示例
  * {"code":200,"msg":"退出登录成功","data":{}}
  */
-func userLogout(req *model.Request) error {
+func userLogout(req *model.Request, resp *model.Response) model.Response {
 	postData := PostAccessToken{}
 	err := req.GetHttpBodyToJson(&postData)
 	if err != nil {
-		return req.ResponseJson(model.ResponseQueryArgsError(err.Error()))
+		return resp.Json(model.ResponseQueryArgsError(err.Error()))
 	}
 	u := database.User{}
 	err = u.Logout(postData.AccessToken)
 	if err != nil {
-		return model.ResponseFail(err.Error(), 400).Write(*req)
+		return resp.Json(model.ResponseFail(err.Error(), 400))
 	}
-	return model.ResponseOk("登出成功").Write(*req)
+	return resp.Json(model.ResponseOk("登出成功"))
 }
 
 /**
-* @api {get} /api/user/check_token 校验token
-* @apiGroup 用户与权限
-* @apiQuery {String} token 通讯凭证: access_token 或 refresh_token 的值
-* @apiSuccess {integer} code 状态码(请求成功为200)
-* @apiSuccess {string} msg 请求成功提示信息
-* @apiSuccess {Object} data 响应数据
-* @apiError {integer} code 请求异常状态码
-* @apiError {string} msg 请求异常提示信息
-* @apiSuccess {Number} data.expires_in 有效期剩余时间。单位:秒
-* @apiSuccess {String} data.grant_type token授权模式。值为 access_token 或 refresh_token
-* @apiErrorExample {json} 请求异常示例
-* {"code":400,"msg":"access_token不正确","data":{}}
-* @apiSuccessExample {json} 请求成功示例
-* {"code":200,"msg":"success","data":{"expires_in":7130,"grant_type":"access_token"}}
+ * @api {get} /api/user/check_token 校验token
+ * @apiGroup 用户与权限
+ * @apiQuery {String} token 通讯凭证: access_token 或 refresh_token 的值
+ * @apiSuccess {integer} code 状态码(请求成功为200)
+ * @apiSuccess {string} msg 请求成功提示信息
+ * @apiSuccess {Object} data 响应数据
+ * @apiError {integer} code 请求异常状态码
+ * @apiError {string} msg 请求异常提示信息
+ * @apiSuccess {Number} data.expires_in 有效期剩余时间。单位:秒
+ * @apiSuccess {String} data.grant_type token授权模式。值为 access_token 或 refresh_token
+ * @apiErrorExample {json} 请求异常示例
+ * {"code":400,"msg":"access_token不正确","data":{}}
+ * @apiSuccessExample {json} 请求成功示例
+ * {"code":200,"msg":"success","data":{"expires_in":7130,"grant_type":"access_token"}}
  */
-func checkUserToken(req *model.Request) error {
+func checkUserToken(req *model.Request, resp *model.Response) model.Response {
 	query := req.GetHttpRequest().URL.Query()
 	token := query.Get("token")
 	u := database.User{}
 	claims, err := u.DecodeJwt(token)
 	if err != nil {
-		return model.ResponseFail(err.Error(), 400).Write(*req)
+		return resp.Json(model.ResponseFail(err.Error(), 400))
 	}
 	grantType, ok := claims[database.GRANT_TYPE]
 	if !ok {
-		return model.ResponseFail("token 不正确", 400).Write(*req)
+		return resp.Json(model.ResponseFail("token 不正确", 400))
 	}
 	_, err = u.GetUserByJwt(token, claims)
 	if err != nil {
-		return model.ResponseFail(err.Error(), 400).Write(*req)
+		return resp.Json(model.ResponseFail(err.Error(), 400))
 	}
 	expiredAt, _ := claims["exp"].(json.Number).Int64()
 	expiresIn := expiredAt - time.Now().Unix()
@@ -155,7 +155,7 @@ func checkUserToken(req *model.Request) error {
 		"grant_type": grantType,
 		"expires_in": expiresIn,
 	}
-	return model.ResponseApi(data, "success", 200).Write(*req)
+	return resp.Json(model.ResponseApi(data, "success", 200))
 }
 
 /**
@@ -185,21 +185,21 @@ func checkUserToken(req *model.Request) error {
 *    }
 *}
  */
-func userRefreshToken(req *model.Request) error {
+func userRefreshToken(req *model.Request, resp *model.Response) model.Response {
 	postData := PostRefreshToken{}
 	err := req.GetHttpBodyToJson(&postData)
 	if err != nil {
-		return req.ResponseJson(model.ResponseQueryArgsError(err.Error()))
+		return resp.Json(model.ResponseQueryArgsError(err.Error()))
 	}
 	// 验证refresh_token Begin
 	u := new(database.User)
 	claims, err := u.CheckTokenGrantType(postData.RefreshToken, database.REFRESH_TOKEN)
 	if err != nil {
-		return model.ResponseFail(err.Error(), 400).Write(*req)
+		return resp.Json(model.ResponseFail(err.Error(), 400))
 	}
 	uu, err := u.GetUserByJwt(postData.RefreshToken, claims)
 	if err != nil {
-		return model.ResponseFail(err.Error(), 400).Write(*req)
+		return resp.Json(model.ResponseFail(err.Error(), 400))
 	}
 	// 验证refresh_token End
 	if postData.ResetSecret {
@@ -213,11 +213,11 @@ func userRefreshToken(req *model.Request) error {
 	}
 	if postData.GrantType == database.ACCESS_TOKEN {
 		data["token"] = uu.GetAccessToken()
-		return model.ResponseApi(data, "success", 200).Write(*req)
+		return resp.Json(model.ResponseApi(data, "success", 200))
 	}
 	if postData.GrantType == database.REFRESH_TOKEN {
 		data["token"] = uu.GetRefreshToken()
-		return model.ResponseApi(data, "success", 200).Write(*req)
+		return resp.Json(model.ResponseApi(data, "success", 200))
 	}
-	return model.ResponseFail("grant_type不正确", 400).Write(*req)
+	return resp.Json(model.ResponseFail("grant_type不正确", 400))
 }

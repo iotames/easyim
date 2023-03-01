@@ -28,25 +28,6 @@ func NewRequest(data []byte, conn net.Conn) *Request {
 	return &Request{data: data, conn: conn}
 }
 
-func (r Request) ResponseJson(v interface{}) error {
-	var body []byte
-	var err error
-	switch v.(type) {
-	case []byte:
-		body = v.([]byte)
-	case string:
-		body = []byte(v.(string))
-	default:
-		body, err = json.Marshal(v)
-		if err != nil {
-			return err
-		}
-	}
-	data := NewResponseOK(body).HttpJson()
-	_, err = r.conn.Write(data)
-	return err
-}
-
 func (r Request) ResponseWebSocket() error {
 	reqHeader := r.GetHttpRequest().Header
 	accept, err := r.getWebSocketNonceAccept([]byte(reqHeader["Sec-Websocket-Key"][0])) // Sec-WebSocket-Key to Sec-Websocket-Key
@@ -67,6 +48,10 @@ func (r Request) ResponseWebSocket() error {
 
 func (r Request) GetData() []byte {
 	return r.data
+}
+
+func (r Request) GetConn() net.Conn {
+	return r.conn
 }
 
 func (r Request) GetHttpBodyToJson(v interface{}) error {

@@ -2,23 +2,22 @@ package model
 
 import (
 	"bytes"
-
+	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 )
 
 type Response struct {
-	statusCode int
-	body       []byte
+	statusCode     int
+	err            error
+	conn           net.Conn
+	body, response []byte
 }
 
-func NewResponse(statusCode int, body []byte) *Response {
-	return &Response{statusCode: statusCode, body: body}
-}
-
-func NewResponseOK(body []byte) *Response {
-	return NewResponse(http.StatusOK, body)
+func NewResponse(conn net.Conn) *Response {
+	return &Response{conn: conn}
 }
 
 func (r Response) getHeader() []string {
@@ -41,7 +40,7 @@ func (r Response) getHeader() []string {
 	// https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Access-Control-Allow-Credentials
 }
 
-func (r Response) HttpJson() []byte {
+func (r Response) httpJson() []byte {
 	header := r.getHeader()
 	header = append(header, "Content-Type: application/json; charset=utf-8")
 	headerText := strings.Join(header, "\n")
@@ -49,11 +48,46 @@ func (r Response) HttpJson() []byte {
 	// return []byte(headerText + "\n\r\n" + string(r.body))
 }
 
-func (r Response) HttpHtml() []byte {
+func (r Response) Json(v interface{}) Response {
+	var err error
+	switch v.(type) {
+	case []byte:
+		r.body = v.([]byte)
+	case string:
+		r.body = []byte(v.(string))
+	default:
+		r.body, err = json.Marshal(v)
+		if err != nil {
+			r.err = err
+		}
+	}
+	if r.err == nil {
+		r.statusCode = http.StatusOK
+		r.response = r.httpJson()
+	}
+	return r
+}
+
+func (r Response) OPTIONS() Response {
+	return r.Html([]byte{}, 200)
+}
+
+func (r Response) Html(body []byte, statusCode int) Response {
+	r.statusCode = http.StatusOK
+	r.body = body
 	header := r.getHeader()
 	header = append(header, "Content-Type: text/html; charset=utf-8")
 	headerText := strings.Join(header, "\n")
-	return []byte(headerText + "\n\r\n" + string(r.body))
+	r.response = []byte(headerText + "\n\r\n" + string(r.body))
+	return r
+}
+
+func (r Response) Write() error {
+	if r.err != nil {
+		return r.err
+	}
+	_, err := r.conn.Write(r.response)
+	return err
 }
 
 type JsonObject map[string]interface{}
@@ -61,10 +95,6 @@ type ResponseApiData struct {
 	Code int        `json:"code"`
 	Msg  string     `json:"msg"`
 	Data JsonObject `json:"data"`
-}
-
-func (r ResponseApiData) Write(req Request) error {
-	return req.ResponseJson(r)
 }
 
 func ResponseApi(data JsonObject, msg string, code int) ResponseApiData {

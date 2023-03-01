@@ -31,7 +31,11 @@ func MainHandler(u contract.IUser) error {
 	if isHttp && msgCount == 1 {
 		// HTTP API 接口业务处理。不支持HTTP 的 Keep-Alive
 		req := model.NewRequest(data, u.GetConn())
-		req.ParseHttp()
+		err = req.ParseHttp()
+		if err != nil {
+			logger.Error(fmt.Sprintf("---ParseHttpError(%v)---", err))
+			return err
+		}
 		if req.IsWebSocket() {
 			// websocket 握手
 			dp.SetProtocol(model.PROTOCOL_WEBSOCKET)

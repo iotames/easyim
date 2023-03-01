@@ -1,28 +1,40 @@
 package handler
 
 import (
+	"fmt"
+
 	"github.com/iotames/easyim/model"
 )
 
-var HttpApiRoute map[string]func(req *model.Request) error = map[string]func(req *model.Request) error{
-	"/api/user/register":      userRegister,
-	"/api/user/login":         userLogin,
-	"/api/user/logout":        userLogout,
-	"/api/user/check_token":   checkUserToken,
-	"/api/user/refresh_token": userRefreshToken,
-	"/api/user/friends":       getUserFriends,
-	"/api/user/friend/add":    addUserFriend,
-	"/api/user/friend/accept": acceptUserFriend,
-	"/api/user/friend/remove": removeUserFriend,
-	"/api/user/search":        searchUser,
+var HttpApiRoute map[string]func(req *model.Request, resp *model.Response) model.Response = map[string]func(req *model.Request, resp *model.Response) model.Response{
+	"POST /api/user/register":      userRegister,
+	"POST /api/user/login":         userLogin,
+	"POST /api/user/logout":        userLogout,
+	"GET /api/user/check_token":    checkUserToken,
+	"POST /api/user/refresh_token": userRefreshToken,
+	"GET /api/user/friends":        getUserFriends,
+	"POST /api/user/friend/add":    addUserFriend,
+	"POST /api/user/friend/accept": acceptUserFriend,
+	"POST /api/user/friend/remove": removeUserFriend,
+	"GET /api/user/search":         searchUser,
 }
 
 func HttpHandler(req *model.Request) error {
 	hreq := req.GetHttpRequest()
-	handler, ok := HttpApiRoute[hreq.URL.Path]
-	if ok {
-		return handler(req)
+	resp := model.NewResponse(req.GetConn())
+	if hreq.Method == "OPTIONS" {
+		return resp.OPTIONS().Write()
 	}
+	handler, ok := HttpApiRoute[fmt.Sprintf("%s %s", hreq.Method, hreq.URL.Path)]
+	if ok {
+		resp := handler(req, resp)
+		return resp.Write()
+	}
+	return HttpNotFound(req, resp).Write()
+}
+
+func HttpNotFound(req *model.Request, resp *model.Response) model.Response {
+	hreq := req.GetHttpRequest()
 	data := model.JsonObject{
 		"protocol": hreq.Proto,
 		"method":   hreq.Method,
@@ -32,7 +44,7 @@ func HttpHandler(req *model.Request) error {
 		"query":    hreq.URL.RawQuery,
 		"body":     req.GetHttpBody(),
 	}
-	return model.ResponseApi(data, "找不到路由", 400).Write(*req)
+	return resp.Json(model.ResponseApi(data, "找不到路由", 400))
 }
 
 type UserLoginForm struct {
