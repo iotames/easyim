@@ -11,17 +11,21 @@ import (
 
 // Handler 当前链接的业务
 func Handler(s *Server, conn net.Conn) {
-	u := user.NewUser(conn, s)
+	u := user.NewUser(conn)
 	u.SetOnConnectStart(func(u user.User) {
 		fmt.Println("TCP连接建立成功:", conn.RemoteAddr().String())
 	})
-	u.SetOnConnectLost(func(u user.User) { fmt.Println("TCP连接断开") })
+	u.SetOnConnectLost(func(u user.User) {
+		addr := u.GetConn().RemoteAddr().String()
+		s.UserOffline(addr)
+		fmt.Println("TCP连接断开")
+	})
 	u.ConnectStart()
 
 	//接受客户端发送的消息
 	go func() {
 		for {
-			err := handler.MainHandler(u)
+			err := handler.MainHandler(s, u)
 			if err != nil {
 				if err.Error() == user.ERR_CONNECT_LOST {
 					return

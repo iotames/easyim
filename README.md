@@ -7,6 +7,11 @@ easyim 是一个简单易用，二开友好，方便部署的即时通讯服务�
 代码源于刘丹冰老师视频教程：[8小时转职Golang工程师](https://www.bilibili.com/video/BV1gf4y1r79E/) - 即时通讯系统
 
 
+## 客户端
+
+- Flutter [https://github.com/dou23/easy_im](https://github.com/dou23/easy_im)
+
+
 ## 开发环境
 
 下载并安装Go: https://golang.google.cn/doc/install

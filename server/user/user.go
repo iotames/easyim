@@ -6,7 +6,6 @@ import (
 	"net"
 	"strings"
 
-	"github.com/iotames/easyim/contract"
 	"github.com/iotames/easyim/model"
 	"github.com/iotames/miniutils"
 )
@@ -15,29 +14,22 @@ const ERR_CONNECT_LOST = "connect lost"
 
 // User. 一个TCP连接。ClentSocket
 type User struct {
-	Name           string
-	Addr           string
 	protocol       string
 	IsClosed       bool
 	message        chan []byte
 	msgCount       int
 	isActive       chan bool
 	conn           net.Conn
-	server         contract.IServer
 	onConnectStart func(u User)
 	onConnectLost  func(u User)
 }
 
 // 创建一个用户的API
-func NewUser(conn net.Conn, s contract.IServer) *User {
-	userAddr := conn.RemoteAddr().String()
+func NewUser(conn net.Conn) *User {
 	u := &User{
-		Name:     userAddr,
-		Addr:     userAddr,
 		message:  make(chan []byte),
 		isActive: make(chan bool),
 		conn:     conn,
-		server:   s,
 	}
 	//启动监听当前user channel消息的goroutine
 	go u.ListenMessage()

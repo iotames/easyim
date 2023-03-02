@@ -9,7 +9,7 @@ import (
 )
 
 // 用户处理消息的业务 Request
-func MainHandler(u contract.IUser) error {
+func MainHandler(s contract.IServer, u contract.IUser) error {
 	// 通过命令行读取的消息data, 有换行符，转为字符串值为: string(data[:len(data)-1])
 	logger := miniutils.GetLogger("")
 	data, err := u.GetConnData()
@@ -33,7 +33,7 @@ func MainHandler(u contract.IUser) error {
 		req := model.NewRequest(data, u.GetConn())
 		err = req.ParseHttp()
 		if err != nil {
-			logger.Error(fmt.Sprintf("---ParseHttpError(%v)---", err))
+			logger.Error(fmt.Sprintf("---ParseHttpError(%v)--RequestRAW(%v)---", err, string(data)))
 			return err
 		}
 		if req.IsWebSocket() {
@@ -53,33 +53,19 @@ func MainHandler(u contract.IUser) error {
 
 	logger.Debug("---TCP---ReceivedMessage--SUCCESS-----u.MsgCount=", u.MsgCount())
 
-	msg := model.Msg{}
-	err = dp.Unpack(data, &msg)
-	if err != nil {
-		return fmt.Errorf("unpack msg fail:%v", err)
-	}
-	logger.Debug("-----ReceivedMsg(%v)--msg.ChatType(%d)--", msg.String(), msg.ChatType)
-	// 在线调试 http://www.websocket-test.com/, https://websocketking.com/
+	return s.HandlerMsg(u, data)
 
-	if (u.IsWebSocket() && msgCount == 2) || (!u.IsWebSocket() && msgCount == 1) {
-		// 接收到的第一条消息
-		// TODO 用户身份鉴权, 添加到聊天室
-
-	}
-
-	if msg.ChatType == model.Msg_SINGLE {
-		// 单聊。发送给TO_USER
-		data, err = dp.Pack(&msg)
-		return u.SendData(data)
-	}
-
-	if msg.ChatType == model.Msg_GROUP {
-		// 群聊。发送给群里的每一个成员。
-		data, err = dp.Pack(&msg)
-		return u.SendData(data)
-	}
-
-	return fmt.Errorf("unknown ChatType")
+	// msg := model.Msg{}
+	// err = dp.Unpack(data, &msg)
+	// if err != nil {
+	// 	return fmt.Errorf("unpack msg fail:%v", err)
+	// }
+	// logger.Debug(fmt.Sprintf("---msg.ChatType(%d)--msg.MsgType(%d)-msg.Seq(%d)--msg.Status(%d)--ReceivedMsg(%v)-", msg.ChatType, msg.MsgType, msg.Seq, msg.Status, msg.String()))
+	// // TODO 发送消息到监听组件
+	// // u.ReceiveDataToSend(data)
+	// data, _ = dp.Pack(&msg)
+	// return u.SendData(data)
+	// return fmt.Errorf("unknown ChatType")
 
 	//提取用户的消息(去除'\n')
 	// msg := string(data[:n-1])
