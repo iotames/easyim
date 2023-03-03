@@ -80,13 +80,19 @@ IM数据通讯的长连接，支持数据传输 `json`, `protobuf` 两种格式�
 
 请参看 [protobuf/msg.proto](https://github.com/iotames/easyim/blob/master/protobuf/msg.proto)文件
 
+
 ```
+# 下载 protoc 命令工具，用来生成特定语言的 protobuf 数据处理文件
+# https://github.com/protocolbuffers/protobuf/releases
+# 安装 protoc-gen-go 插件，解析protobuf协议数据为Go语言的数据处理文件
+# go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+# 根据msg.proto协议文件，在model目录，生成Go语言的protobuf数据处理文件
 protoc --go_out=model protobuf/msg.proto
 ```
 
 ### 事件消息
 
-当 `msg_type=4` 时，代表当前通讯数据为一条`事件消息`。 定义如下表所示:
+当 `msg_type=4` 时，代表当前通讯数据为一条`事件消息`。 `事件ID` 定义如下表所示:
 
 | 事件ID | 释义  |
 | ----- | ----- |
@@ -110,11 +116,11 @@ protoc --go_out=model protobuf/msg.proto
 
 `心跳消息` 是一种特殊的 `事件消息`， 用于客户端向服务端发送周期性消息。因为服务端长期未收到消息，会主动断开连接。
 
-用户一直未主动发消息，又要保持与服务端的长连接不断开，才能持续接收在线消息。故客户端要周期性地发送心跳事件消息。
+- 发送原因： 用户一直未主动发消息，又要保持与服务端的长连接不断开，才能持续接收在线消息。
+- 发送频率： 服务端有长期未收到消息，主动断开连接的 `等待时间` , 客户端`心跳发送周期`，稍小于该时间。
+- 首次发送： 首次建立TCP连接后，客户端发送的第一条消息必须为 `心跳消息`，告诉服务端用户已上线。
 
-发送方式，请参看 `事件消息` 介绍。
-
-服务端设有因长期未收到消息，而主动断开连接的 `等待时间` , 客户端`心跳的发送周期`，稍小于该时间即可。
+`心跳消息` 发送方式，请参看 `事件消息` 介绍。
 
 
 ## 在线调试
