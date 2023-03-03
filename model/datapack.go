@@ -10,6 +10,11 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
+const (
+	MSG_KEEP_ALIVE = "KEEP_ALIVE"
+	MSG_NOTIFY     = "NOTIFY"
+)
+
 type DataPack struct {
 	protocol  string
 	msgFormat string

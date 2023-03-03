@@ -73,12 +73,48 @@ IM数据通讯的长连接，支持数据传输 `json`, `protobuf` 两种格式�
 | from_user_id   | string     | 消息发送方ID |
 | to_user_id   | string     | 消息接收方ID |
 | chat_type   | ChatType     | 聊天类型(ChatType枚举类型:0单聊,1群聊) |
-| msg_type   | MsgType     | 消息类型(MsgType枚举类型:0文本,1图片,2语音,3视频) |
+| msg_type   | MsgType     | 消息类型(MsgType枚举类型:0文本,1图片,2语音,3视频,4事件,5系统通知) |
 | status   | MsgStatus     | 消息状态(MsgStatus枚举类型:0未发送,1已发送,2已送达,3已读取) |
 | content   | string     | 消息内容，字符串类型 |
 | access_token | string | 鉴权令牌，字符串类型。用户登录成功后获取|
 
 请参看 [protobuf/msg.proto](https://github.com/iotames/easyim/blob/master/protobuf/msg.proto)文件
+
+```
+protoc --go_out=model protobuf/msg.proto
+```
+
+### 事件消息
+
+当 `msg_type=4` 时，代表当前通讯数据为一条`事件消息`。 定义如下表所示:
+
+| 事件ID | 释义  |
+| ----- | ----- |
+|  KEEP_ALIVE  | 心跳事件 |
+
+`事件ID` 为字符串类型，代表事件类型(如心跳事件)
+
+客户端上报事件时 `to_user_id` 填写 `事件ID`, `content` 填写 `事件值`（事件内容）
+
+服务端下发事件时 `from_user_id` 填写 `事件ID`, `content` 填写 `事件值`（事件内容）
+
+具体如下所示:
+
+| 事件              | from_user_id  | to_user_id    | content |
+| -----             | -----        | -----      | -----       |
+| 客户端上报心跳事件 | 客户端user_id | KEEP_ALIVE | 客户端IP |
+| 服务端响应心跳事件 | KEEP_ALIVE | 客户端user_id | SUCCESS |
+
+
+### 心跳消息
+
+`心跳消息` 是一种特殊的 `事件消息`， 用于客户端向服务端发送周期性消息。因为服务端长期未收到消息，会主动断开连接。
+
+用户一直未主动发消息，又要保持与服务端的长连接不断开，才能持续接收在线消息。故客户端要周期性地发送心跳事件消息。
+
+发送方式，请参看 `事件消息` 介绍。
+
+服务端设有因长期未收到消息，而主动断开连接的 `等待时间` , 客户端`心跳的发送周期`，稍小于该时间即可。
 
 
 ## 在线调试

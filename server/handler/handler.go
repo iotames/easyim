@@ -52,31 +52,5 @@ func MainHandler(s contract.IServer, u contract.IUser) error {
 	}
 
 	logger.Debug("---TCP---ReceivedMessage--SUCCESS-----u.MsgCount=", u.MsgCount())
-
 	return s.HandlerMsg(u, data)
-
-	// msg := model.Msg{}
-	// err = dp.Unpack(data, &msg)
-	// if err != nil {
-	// 	return fmt.Errorf("unpack msg fail:%v", err)
-	// }
-	// logger.Debug(fmt.Sprintf("---msg.ChatType(%d)--msg.MsgType(%d)-msg.Seq(%d)--msg.Status(%d)--ReceivedMsg(%v)-", msg.ChatType, msg.MsgType, msg.Seq, msg.Status, msg.String()))
-	// // TODO 发送消息到监听组件
-	// // u.ReceiveDataToSend(data)
-	// data, _ = dp.Pack(&msg)
-	// return u.SendData(data)
-	// return fmt.Errorf("unknown ChatType")
-
-	//提取用户的消息(去除'\n')
-	// msg := string(data[:n-1])
-	//用户针对msg进行消息处理
-
-	//  len(msg) > 4 && msg[:3] == "to|" {
-	// 		//消息格式:  to|张三|消息内容
-	// 		remoteUser.SendMsg(u.Name + "对您说:" + content)
-
-	//	} else {
-	//		u.server.BroadCast(u, msg)
-	//	}
-
 }

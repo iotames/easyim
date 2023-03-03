@@ -120,21 +120,30 @@ func (s *Server) HandlerMsg(u contract.IUser, data []byte) error {
 	msg := model.Msg{}
 	err := dp.Unpack(data, &msg)
 	if err != nil {
+		logger.Error(fmt.Sprintf("---unpack msg fail(%v)---dataRAW(%s)--", err, data))
 		return fmt.Errorf("unpack msg fail:%v", err)
 	}
 	logger.Debug(fmt.Sprintf("---msg.ChatType(%d)--msg.MsgType(%d)-msg.Seq(%d)--msg.Status(%d)--ReceivedMsg(%v)-", msg.ChatType, msg.MsgType, msg.Seq, msg.Status, msg.String()))
 	// 在线调试 http://www.websocket-test.com/, https://websocketking.com/
 	msgCount := u.MsgCount()
 	if (u.IsWebSocket() && msgCount == 2) || (!u.IsWebSocket() && msgCount == 1) {
-		// 接收到的第一条消息
-		err = s.firstMsgComeIn(u, data)
-		if err != nil {
+		// 接收到的第一条消息, 必须为心跳事件
+		if msg.MsgType != model.Msg_EVENT {
+			msg.MsgType = model.Msg_NOTIFY
+			msg.Content = "建立连接的第一条消息必须为心跳事件消息"
+			msg.ToUserId = msg.FromUserId
+			if msg.ToUserId != model.MSG_KEEP_ALIVE {
+				msg.Content = "建立连接的第一条消息必须为心跳事件消息.to_user_id=" + model.MSG_KEEP_ALIVE
+				data, err = dp.Pack(&msg)
+				u.ReceiveDataToSend(data)
+				return err
+			}
+			data, err = dp.Pack(&msg)
+			u.ReceiveDataToSend(data)
 			return err
 		}
-		// TODO 发送消息到监听组件
-		data, err = dp.Pack(&msg)
-		u.ReceiveDataToSend(data)
-		return err
+		// 处理首次心跳消息，上线用户
+		return s.firstMsgComeIn(u, data)
 	}
 	// TODO 发送消息到监听组件
 	data, err = dp.Pack(&msg)
