@@ -8,32 +8,32 @@ import (
 	"github.com/iotames/easyim/config"
 	"github.com/iotames/easyim/contract"
 	"github.com/iotames/easyim/model"
+	"github.com/iotames/easyim/user"
 	"github.com/iotames/miniutils"
 )
 
 type Server struct {
 	Ip              string
 	Port, DropAfter int
-	onLineMap       map[string]contract.IUser
-	addrToUid       map[string]string
+	addrToUser      map[string]*user.User
 	uidToAddr       map[string]string
 	chatRoomsMap    map[string]*ChatRoom
 	addrToRoom      map[string]*ChatRoom
 
-	// //在线用户的列表
-	// OnlineMap map[string]*User
-	// 对User字典或字典中的user, 进行操作时，要加锁
+	// 操作字典时，要加锁
 	lock sync.RWMutex
 }
 
 // 创建一个server的接口
 func NewServer(conf config.Server) *Server {
 	server := &Server{
-		Ip:        conf.IP,
-		Port:      conf.Port,
-		DropAfter: conf.DropAfter,
-		// OnlineMap: make(map[string]*User),
-		// Message:   make(chan string),
+		Ip:           conf.IP,
+		Port:         conf.Port,
+		DropAfter:    conf.DropAfter,
+		addrToUser:   make(map[string]*user.User, 10),
+		uidToAddr:    make(map[string]string, 10),
+		chatRoomsMap: make(map[string]*ChatRoom, 10),
+		addrToRoom:   make(map[string]*ChatRoom, 10),
 	}
 	return server
 }
@@ -97,7 +97,19 @@ func (s *Server) HandlerMsg(u contract.IUser, data []byte) error {
 		// 连接建立后客户端主动发送一个心跳事件消息
 		return s.FirstMsg(u, data, &msg)
 	}
+
 	addr := u.GetConn().RemoteAddr().String()
+	uu := s.addrToUser[addr]
+	// 根据access_token进行用户身份鉴权
+	if uu.GetID() != msg.FromUserId || !uu.CheckToken(msg.AccessToken) {
+		errMsg := "access_token 或 from_user_id 不正确"
+		msg.MsgType = model.Msg_NOTIFY
+		msg.ToUserId = msg.FromUserId
+		msg.FromUserId = "notify"
+		msg.Content = errMsg
+		return s.SendMsg(u, &msg)
+	}
+
 	room, ok := s.addrToRoom[addr]
 	if ok {
 		return room.ReceiveDataToSend(&msg)
@@ -122,7 +134,6 @@ func (s *Server) FirstMsg(u contract.IUser, data []byte, msg *model.Msg) error {
 		return s.SendMsg(u, msg)
 	}
 	// 处理首次心跳消息，上线用户
-	// TODO 根据access_token进行用户身份鉴权, 再添加到聊天室
 	return s.UserOnline(u, msg)
 }
 
@@ -149,13 +160,9 @@ func (s *Server) getChatRoom(from, to string, chatType model.Msg_ChatType) (room
 func (s *Server) UserOnline(u contract.IUser, msg *model.Msg) error {
 	addr := u.GetConn().RemoteAddr().String()
 	s.Lock()
-	if s.onLineMap == nil {
-		s.onLineMap = make(map[string]contract.IUser, 10)
-	}
-	_, ok := s.onLineMap[addr]
+	_, ok := s.addrToUser[addr]
 	if !ok {
-		s.onLineMap[addr] = u
-		s.addrToUid[addr] = msg.FromUserId
+		s.addrToUser[addr] = user.NewUser(msg.FromUserId)
 		s.uidToAddr[msg.FromUserId] = addr
 		roomKey, room := s.getChatRoom(msg.FromUserId, msg.ToUserId, msg.ChatType)
 		// 加入聊天室
@@ -179,10 +186,9 @@ func (s *Server) UserOnline(u contract.IUser, msg *model.Msg) error {
 
 func (s *Server) UserOffline(addr string) {
 	s.Lock()
-	if _, ok := s.onLineMap[addr]; ok {
-		delete(s.onLineMap, addr)
-		uid := s.addrToUid[addr]
-		delete(s.addrToUid, addr)
+	if _, ok := s.addrToUser[addr]; ok {
+		delete(s.addrToUser, addr)
+		uid := s.addrToUser[addr].GetID()
 		delete(s.uidToAddr, uid)
 		// 从聊天室移除
 		room, b := s.addrToRoom[addr]
@@ -190,7 +196,7 @@ func (s *Server) UserOffline(addr string) {
 			room.Remove(addr)
 			delete(s.addrToRoom, addr)
 		}
-		fmt.Println("移除onLineMap")
+		fmt.Println("移除在线用户")
 	}
 	s.Unlock()
 }

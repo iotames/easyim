@@ -16,8 +16,7 @@ func Handler(s *Server, conn net.Conn) {
 		fmt.Println("TCP连接建立成功:", conn.RemoteAddr().String())
 	})
 	u.SetOnConnectLost(func(u user.User) {
-		addr := u.GetConn().RemoteAddr().String()
-		s.UserOffline(addr)
+		s.UserOffline(u.GetConn().RemoteAddr().String())
 		fmt.Println("TCP连接断开")
 	})
 	u.ConnectStart()

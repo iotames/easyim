@@ -7,10 +7,11 @@ import (
 
 // 创建聊天的基本单位: 聊天室
 type ChatRoom struct {
-	ID       int64
-	msgCount int
-	msg      chan []byte
-	usersMap map[string]contract.IUser
+	ID          int64
+	isGroupChat bool
+	msgCount    int
+	msg         chan []byte
+	usersMap    map[string]contract.IUser
 }
 
 func NewChatRoom(u contract.IUser) *ChatRoom {
