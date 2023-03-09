@@ -101,20 +101,16 @@ func (s *Server) HandlerMsg(u contract.IUser, data []byte) error {
 	addr := u.GetConn().RemoteAddr().String()
 	uu := s.addrToUser[addr]
 	// 根据access_token进行用户身份鉴权
-	if uu.GetID() != msg.FromUserId || !uu.CheckToken(msg.AccessToken) {
-		errMsg := "access_token 或 from_user_id 不正确"
-		msg.MsgType = model.Msg_NOTIFY
-		msg.ToUserId = msg.FromUserId
-		msg.FromUserId = "notify"
-		msg.Content = errMsg
-		return s.SendMsg(u, &msg)
+	b, err := s.checkToken(uu, u, &msg)
+	if !b {
+		return err
 	}
 
 	room, ok := s.addrToRoom[addr]
 	if ok {
 		return room.ReceiveDataToSend(&msg)
 	}
-	// TODO 保存离线消息，下次上线时发送
+	// TODO 对未上线的发送对象，保存离线消息，下次上线时发送
 	return nil
 }
 
@@ -157,12 +153,30 @@ func (s *Server) getChatRoom(from, to string, chatType model.Msg_ChatType) (room
 	return
 }
 
+func (s *Server) checkToken(uu *user.User, u contract.IUser, msg *model.Msg) (bool, error) {
+	if uu.GetID() != msg.FromUserId || !uu.CheckToken(msg.AccessToken) {
+		errMsg := "access_token 或 from_user_id 不正确"
+		msg.MsgType = model.Msg_NOTIFY
+		msg.ToUserId = msg.FromUserId
+		msg.FromUserId = "notify"
+		msg.Content = errMsg
+		return false, s.SendMsg(u, msg)
+	}
+	return true, nil
+}
+
 func (s *Server) UserOnline(u contract.IUser, msg *model.Msg) error {
 	addr := u.GetConn().RemoteAddr().String()
+	uu := user.NewUser(msg.FromUserId)
+	b, err := s.checkToken(uu, u, msg)
+	if !b {
+		return err
+	}
 	s.Lock()
 	_, ok := s.addrToUser[addr]
 	if !ok {
-		s.addrToUser[addr] = user.NewUser(msg.FromUserId)
+		fmt.Println("UserOnline:", addr)
+		s.addrToUser[addr] = uu
 		s.uidToAddr[msg.FromUserId] = addr
 		roomKey, room := s.getChatRoom(msg.FromUserId, msg.ToUserId, msg.ChatType)
 		// 加入聊天室
@@ -181,6 +195,7 @@ func (s *Server) UserOnline(u contract.IUser, msg *model.Msg) error {
 	msg.Content = "SUCCESS"
 	msg.ToUserId = msg.FromUserId
 	msg.FromUserId = model.MSG_KEEP_ALIVE
+	// TODO 读取离线消息，有则发送
 	return s.SendMsg(u, msg)
 }
 
