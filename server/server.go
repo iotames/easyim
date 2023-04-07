@@ -114,6 +114,7 @@ func (s *Server) HandlerMsg(u contract.IUser, data []byte) error {
 	return nil
 }
 
+// FirstMsg 处理首条消息(心跳消息)
 func (s *Server) FirstMsg(u contract.IUser, data []byte, msg *model.Msg) error {
 	// 建立连接后发送的第一条消息必须为心跳事件消息
 	if msg.MsgType != model.Msg_EVENT {

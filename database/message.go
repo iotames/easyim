@@ -24,14 +24,14 @@ type Message struct {
 	FromUserID int64     `xorm:"notnull default(0) 'from_user_id'"`       // 发送方
 	ToUserID   int64     `xorm:"notnull default(0) 'to_user_id'"`         // 接收方
 	ChatType   uint8     `xorm:"SMALLINT notnull default(0) 'chat_type'"` // 聊天类型. 单聊0群聊1.默认单聊
-	MsgType    uint8     `xorm:"SMALLINT notnull default(0) 'msg_type'"`  // 消息类型。文本0，图片1，语音2，视频3
+	MsgType    uint8     `xorm:"SMALLINT notnull default(0) 'msg_type'"`  // 消息类型。文本0，图片1，语音2，视频3，事件4，通知5
 	Status     uint8     `xorm:"SMALLINT notnull default(0)"`             // 状态。未送出0，已送出1，已送达2，已读取3
 	ArrivedAt  time.Time // 送达时间
 	ReadAt     time.Time // 已读时间
 	Content    string    `xorm:"TEXT notnull 'content'"` // 消息内容。数据库保存为json字符串
 }
 
-func NewMsgSingleText(text string, from, to, seq int64) *Message {
+func NewTextMsgToOne(text string, from, to, seq int64) *Message {
 	return &Message{
 		Seq:        seq,
 		FromUserID: from,

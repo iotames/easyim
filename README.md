@@ -97,20 +97,29 @@ protoc --go_out=model protobuf/msg.proto
 | 事件ID | 释义  |
 | ----- | ----- |
 |  KEEP_ALIVE  | 心跳事件 |
+|  FRIEND_INVITE  | 好友邀请 |
+|  FRIEND_AGREE  | 同意好友邀请 |
 
-`事件ID` 为字符串类型，代表事件类型(如心跳事件)
+`事件ID` 为字符串，代表事件类型(如心跳事件, 好友邀请)，事件消息的 `content` 字段内容为json字符串。
 
-客户端上报事件时 `to_user_id` 填写 `事件ID`, `content` 填写 `事件值`（事件内容）
+服务端给客户端发送的json数据，为统一格式: `{"code":200,"msg":"SUCCESS","data":{"key":"KEEP_ALIVE"}}`
 
-服务端下发事件时 `from_user_id` 填写 `事件ID`, `content` 填写 `事件值`（事件内容）
+| 字段|数据类型 |释义 |
+|---   | --- | ---   |
+| code  | 整数 |状态码|
+| msg  |字符串 |提示信息|
+| data |json对象| 消息主体|
+| key  | 字符串 | 事件ID|
 
-具体如下所示:
+具体事件消息示例:
 
 | 事件              | from_user_id  | to_user_id    | content |
-| -----             | -----        | -----      | -----       |
-| 客户端上报心跳事件 | 客户端user_id | KEEP_ALIVE | 客户端IP |
-| 服务端响应心跳事件 | KEEP_ALIVE | 客户端user_id | SUCCESS |
-
+| -----            | -----          | -----         | -----       |
+| 客户端上报心跳    | 客户端user_id  |               |  {"key":"KEEP_ALIVE"} |
+| 服务端响应心跳    |               | 客户端user_id  |  {"code":200,"msg":"SUCCESS","data":{"key":"KEEP_ALIVE"}} |
+| 客户端发送好友邀请 |                |  对方user_id  | {"key":"FRIEND_INVITE"} |
+| 客户端收到好友邀请 | 邀请方user_id  |               | {"code":200,"msg":"SUCCESS","data":{"key":"FRIEND_INVITE"}} |
+| 客户端同意好友邀请 | 被邀请user_id  | 邀请方user_id  | {"key":"FRIEND_AGREE"} |
 
 ### 心跳消息
 
