@@ -20,11 +20,7 @@ func main() {
 	var err error
 	flag.Parse()
 	if stop {
-		err = stopApp(sconf.Port)
-		if err != nil {
-			fmt.Println("stop err:", err)
-			return
-		}
+		stopApp(sconf.Port)
 		return
 	}
 	if daemon {

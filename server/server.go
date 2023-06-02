@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/iotames/easyim/config"
 	"github.com/iotames/easyim/contract"
 	"github.com/iotames/easyim/model"
+	"github.com/iotames/easyim/server/handler"
 	"github.com/iotames/easyim/user"
 	"github.com/iotames/miniutils"
 )
@@ -58,7 +60,17 @@ func (s *Server) Start() error {
 	defer listener.Close()
 
 	logger := miniutils.GetLogger("")
+	closeListener := false
 	for {
+		go func() {
+			<-handler.StopSignChan
+			fmt.Println("程序将在5秒后退出")
+			time.Sleep(time.Second * 5)
+			closeListener = true
+		}()
+		if closeListener {
+			break
+		}
 		//accept
 		conn, err := listener.Accept()
 		if err != nil {
@@ -69,6 +81,8 @@ func (s *Server) Start() error {
 		//do handler
 		go Handler(s, conn)
 	}
+	fmt.Println("程序已退出")
+	return nil
 }
 
 func (s *Server) SendMsg(u contract.IUser, msg *model.Msg) error {

@@ -17,6 +17,7 @@ var HttpApiRoute map[string]func(req *model.Request, resp *model.Response) model
 	"POST /api/user/friend/accept": acceptUserFriend,
 	"POST /api/user/friend/remove": removeUserFriend,
 	"GET /api/user/search":         searchUser,
+	"POST /api/local/stop":         closeListener,
 }
 
 func HttpHandler(req *model.Request) error {

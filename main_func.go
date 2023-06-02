@@ -2,28 +2,39 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"runtime"
-
-	"github.com/iotames/miniutils"
 )
 
-const RUN_LOCK_FILE = "run.lock"
+// const RUN_LOCK_FILE = "run.lock"
 
 // 停止程序运行
-func stopApp(port int) error {
-	var err error
-	// pid, err := os.ReadFile(RUN_LOCK_FILE)
-	pid := miniutils.GetPidByPort(sconf.Port)
-	if pid > -1 {
-		err = miniutils.KillPid(fmt.Sprintf("%d", pid))
-		if err != nil {
-			return fmt.Errorf("kill app fail(%v)", err)
-		}
-		return os.Remove(RUN_LOCK_FILE)
+func stopApp(port int) {
+	req, _ := http.NewRequest("POST", fmt.Sprintf("http://127.0.0.1:%d/api/local/stop", port), nil)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		panic(err)
 	}
-	return fmt.Errorf("app is not running")
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(b))
+
+	// var err error
+	// // pid, err := os.ReadFile(RUN_LOCK_FILE)
+	// pid := miniutils.GetPidByPort(sconf.Port)
+	// if pid > -1 {
+	// 	err = miniutils.KillPid(fmt.Sprintf("%d", pid))
+	// 	if err != nil {
+	// 		return fmt.Errorf("kill app fail(%v)", err)
+	// 	}
+	// 	return os.Remove(RUN_LOCK_FILE)
+	// }
+	// return fmt.Errorf("app is not running")
 }
 
 // 以守护进程的方式后台运行
@@ -48,5 +59,6 @@ func startDaemon() error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(RUN_LOCK_FILE, []byte(fmt.Sprintf("%d", cmd.Process.Pid)), 0755)
+	return nil
+	// return os.WriteFile(RUN_LOCK_FILE, []byte(fmt.Sprintf("%d", cmd.Process.Pid)), 0755)
 }
