@@ -23,7 +23,7 @@ func stopApp(port int) error {
 		}
 		return os.Remove(RUN_LOCK_FILE)
 	}
-	return fmt.Errorf("app is not running!")
+	return fmt.Errorf("app is not running")
 }
 
 // 以守护进程的方式后台运行

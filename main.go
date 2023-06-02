@@ -47,10 +47,10 @@ func main() {
 
 func init() {
 	config.LoadEnv()
+	sconf = config.GetServer()
+	flag.IntVar(&sconf.Port, "port", sconf.Port, "监听的端口号")
 	flag.BoolVar(&daemon, "d", false, "以守护进程的方式在后台运行。不支持windows系统")
 	flag.BoolVar(&stop, "stop", false, "停止运行中的程序")
 	flag.BoolVar(&appInit, "init", false, "首次运行时添加，用于初始化")
-	sconf = config.GetServer()
-	flag.IntVar(&sconf.Port, "port", sconf.Port, "监听的端口号")
 	// time.LoadLocation("Asia/Shanghai")
 }
