@@ -3,6 +3,7 @@ package model
 import (
 	"bufio"
 	"bytes"
+	"compress/gzip"
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/json"
@@ -63,11 +64,24 @@ func (r *Request) ParseHttp() error {
 	reader := bytes.NewReader(data)
 	hreq, err := http.ReadRequest(bufio.NewReader(reader))
 	if err != nil {
-		return err
+		return fmt.Errorf("err for http.ReadRequest:%v", err)
 	}
-	body, err := io.ReadAll(hreq.Body)
+
+	var bodyReader io.Reader = hreq.Body
+	// if bodySize > 0 {
+	// 	bodyReader = io.LimitReader(bodyReader, int64(bodySize))
+	// }
+	contentEncoding := strings.ToLower(hreq.Header.Get("Accept-Encoding"))
+	if strings.Contains(contentEncoding, "gzip") || strings.HasSuffix(strings.ToLower(hreq.URL.Path), ".xml.gz") {
+		bodyReader, err = gzip.NewReader(bodyReader)
+		if err != nil {
+			return fmt.Errorf("err for gzip.NewReader:%v", err)
+		}
+		defer bodyReader.(*gzip.Reader).Close()
+	}
+	body, err := io.ReadAll(bodyReader)
 	if err != nil {
-		return err
+		return fmt.Errorf("err for io.ReadAll:%v", err)
 	}
 	r.httpRequest = hreq
 	r.httpBody = body
