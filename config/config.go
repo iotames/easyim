@@ -1,7 +1,9 @@
 package config
 
 import (
+	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/iotames/miniutils"
 	"github.com/joho/godotenv"
@@ -32,6 +34,7 @@ DB_NODE_ID = 1
 # Server
 SERVER_IP = "0.0.0.0"
 SERVER_PORT = 8888
+API_SERVER_PORT = 8889
 # 一段时间不活跃，自动断开连接
 SERVER_DROP_AFTER = 300
 # json, protobuf
@@ -64,22 +67,22 @@ func initEnvFile() {
 	}
 }
 
-// var envconfig *EnvConfig
-// var once sync.Once
+func getEnvDefaultStr(key, defval string) string {
+	v, ok := os.LookupEnv(key)
+	if !ok {
+		return defval
+	}
+	return v
+}
 
-// type EnvConfig struct {
-// 	Database Database
-// }
-
-// func (e *EnvConfig) Load() {
-// 	e.Database = *GetDatabase()
-// }
-
-// func GetEnvConfig() EnvConfig {
-// 	once.Do(func() {
-// 		fmt.Println("-----First---GetEnvConfig---once.Do")
-// 		envconfig = &EnvConfig{}
-// 		envconfig.Load()
-// 	})
-// 	return *envconfig
-// }
+func getEnvDefaultInt(key string, defval int) int {
+	v, ok := os.LookupEnv(key)
+	if !ok {
+		return defval
+	}
+	vv, err := strconv.Atoi(v)
+	if err != nil {
+		panic(fmt.Errorf("fail to get env(%s) val:%v", key, err))
+	}
+	return vv
+}

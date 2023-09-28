@@ -30,7 +30,8 @@ func MainHandler(s contract.IServer, u contract.IUser) error {
 	dp := model.GetDataPack()
 	if isHttp && msgCount == 1 {
 		// HTTP API 接口业务处理。不支持HTTP 的 Keep-Alive
-		req := model.NewRequest(data, u.GetConn())
+		req := model.NewRequest(u.GetConn())
+		req.SetRawData(data)
 		err = req.ParseHttp()
 		if err != nil {
 			logger.Error(fmt.Sprintf("---ParseHttpError(%v)--RequestRAW(%v)---", err, string(data)))

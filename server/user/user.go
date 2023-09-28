@@ -83,10 +83,7 @@ func (u *User) SetProtocol(proto string) {
 }
 
 func (u User) IsWebSocket() bool {
-	if u.protocol == model.PROTOCOL_WEBSOCKET {
-		return true
-	}
-	return false
+	return u.protocol == model.PROTOCOL_WEBSOCKET
 }
 
 func (u User) MsgCount() int {

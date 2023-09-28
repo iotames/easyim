@@ -3,7 +3,6 @@ package model
 import (
 	"bufio"
 	"bytes"
-	"compress/gzip"
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/json"
@@ -20,13 +19,13 @@ const (
 )
 
 type Request struct {
-	data, httpBody []byte
-	httpRequest    *http.Request
-	conn           net.Conn
+	raw, httpBody []byte
+	httpRequest   *http.Request
+	conn          net.Conn
 }
 
-func NewRequest(data []byte, conn net.Conn) *Request {
-	return &Request{data: data, conn: conn}
+func NewRequest(conn net.Conn) *Request {
+	return &Request{conn: conn}
 }
 
 func (r Request) ResponseWebSocket() error {
@@ -47,8 +46,11 @@ func (r Request) ResponseWebSocket() error {
 	return err
 }
 
-func (r Request) GetData() []byte {
-	return r.data
+func (r Request) GetRawData() []byte {
+	return r.raw
+}
+func (r *Request) SetRawData(dt []byte) {
+	r.raw = dt
 }
 
 func (r Request) GetConn() net.Conn {
@@ -60,25 +62,19 @@ func (r Request) GetHttpBodyToJson(v interface{}) error {
 }
 
 func (r *Request) ParseHttp() error {
-	data := r.GetData()
-	reader := bytes.NewReader(data)
-	hreq, err := http.ReadRequest(bufio.NewReader(reader))
+	var breader *bufio.Reader
+	data := r.GetRawData()
+	if len(data) > 0 {
+		breader = bufio.NewReader(bytes.NewReader(data))
+	} else {
+		breader = bufio.NewReader(r.GetConn())
+	}
+	hreq, err := http.ReadRequest(breader)
 	if err != nil {
 		return fmt.Errorf("err for http.ReadRequest:%v", err)
 	}
 
 	var bodyReader io.Reader = hreq.Body
-	// if bodySize > 0 {
-	// 	bodyReader = io.LimitReader(bodyReader, int64(bodySize))
-	// }
-	contentEncoding := strings.ToLower(hreq.Header.Get("Accept-Encoding"))
-	if strings.Contains(contentEncoding, "gzip") || strings.HasSuffix(strings.ToLower(hreq.URL.Path), ".xml.gz") {
-		bodyReader, err = gzip.NewReader(bodyReader)
-		if err != nil {
-			return fmt.Errorf("err for gzip.NewReader:%v", err)
-		}
-		defer bodyReader.(*gzip.Reader).Close()
-	}
 	body, err := io.ReadAll(bodyReader)
 	if err != nil {
 		return fmt.Errorf("err for io.ReadAll:%v", err)

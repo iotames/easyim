@@ -15,12 +15,12 @@ import (
 )
 
 type Server struct {
-	Ip              string
-	Port, DropAfter int
-	addrToUser      map[string]*user.User
-	uidToAddr       map[string]string
-	chatRoomsMap    map[string]*ChatRoom
-	addrToRoom      map[string]*ChatRoom
+	Ip                       string
+	Port, ApiPort, DropAfter int
+	addrToUser               map[string]*user.User
+	uidToAddr                map[string]string
+	chatRoomsMap             map[string]*ChatRoom
+	addrToRoom               map[string]*ChatRoom
 
 	// 操作字典时，要加锁
 	lock sync.RWMutex
@@ -31,6 +31,7 @@ func NewServer(conf config.Server) *Server {
 	server := &Server{
 		Ip:           conf.IP,
 		Port:         conf.Port,
+		ApiPort:      conf.ApiPort,
 		DropAfter:    conf.DropAfter,
 		addrToUser:   make(map[string]*user.User, 10),
 		uidToAddr:    make(map[string]string, 10),
@@ -51,13 +52,17 @@ func (s *Server) Unlock() {
 // 启动服务器的接口
 func (s *Server) Start() error {
 	//socket listen
-	fmt.Printf("[START] EasyIM Server. listenner at IP: %s, Port %d is starting\n", s.Ip, s.Port)
+	fmt.Printf("[START] EasyIM TCP Server. listenner at IP: %s, Port %d is starting\n", s.Ip, s.Port)
 	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", s.Ip, s.Port))
 	if err != nil {
 		return fmt.Errorf("net.Listen err(%v)", err)
 	}
 	//close listen socket
 	defer listener.Close()
+
+	go func() {
+		s.RunApiListen()
+	}()
 
 	logger := miniutils.GetLogger("")
 	closeListener := false
@@ -83,6 +88,54 @@ func (s *Server) Start() error {
 	}
 	fmt.Println("程序已退出")
 	return nil
+}
+
+func (s *Server) RunApiListen() {
+	logger := miniutils.GetLogger("")
+	fmt.Printf("[START] EasyIM API Server. listenner at IP: %s, Port %d is starting\n", s.Ip, s.ApiPort)
+	apilstn, err := net.Listen("tcp", fmt.Sprintf("%s:%d", s.Ip, s.ApiPort))
+	if err != nil {
+		panic(fmt.Errorf("net.Listen err(%v)", err))
+	}
+	defer apilstn.Close()
+
+	for {
+		//accept
+		conn, err := apilstn.Accept()
+		if err != nil {
+			logger.Error("api listener accept err:", err)
+			continue
+		}
+		go func() {
+			fmt.Println("---API连接建立成功:", conn.RemoteAddr().String())
+			isClosed := false
+			go func() {
+				for {
+					req := model.NewRequest(conn)
+					err = req.ParseHttp()
+					if err != nil {
+						logger.Error(fmt.Sprintf("---API--ParseHttpError(%v)---", err))
+						isClosed = true
+						return
+					}
+					err = handler.HttpHandler(req)
+					if err != nil {
+						logger.Debug("---handler.MainHandler--HttpHandler--error:", err)
+					}
+					// HTTP 一次请求响应后，立即关闭连接。不支持HTTP 的 Keep-Alive
+					isClosed = true
+				}
+			}()
+
+			//当前handler阻塞
+			for {
+				if isClosed {
+					fmt.Println("---API连接断开:", conn.RemoteAddr().String())
+					break
+				}
+			}
+		}()
+	}
 }
 
 func (s *Server) SendMsg(u contract.IUser, msg *model.Msg) error {
